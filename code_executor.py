@@ -66,12 +66,13 @@ class CodeExecutor:
         # Write code to a temp file
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".py", dir=self.workspace_dir,
-            delete=False, prefix="bioagent_py_"
+            delete=False, prefix="bioagent_py_", encoding="utf-8"
         ) as f:
             # Wrap code to handle matplotlib non-interactively
             # Use repr() to properly escape Windows paths with backslashes
             workspace_path = repr(str(self.workspace_dir))
             wrapped_code = (
+                "# -*- coding: utf-8 -*-\n"
                 "import matplotlib\n"
                 "matplotlib.use('Agg')\n"
                 "import warnings\n"
@@ -101,7 +102,7 @@ class CodeExecutor:
         """Execute R code."""
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".R", dir=self.workspace_dir,
-            delete=False, prefix="bioagent_r_"
+            delete=False, prefix="bioagent_r_", encoding="utf-8"
         ) as f:
             # Use forward slashes for R on Windows (R accepts both)
             workspace_path = str(self.workspace_dir).replace("\\", "/")
