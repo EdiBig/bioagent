@@ -151,12 +151,19 @@ Choose the appropriate database for each query type:
 - Use for: Interaction networks, finding protein partners, pathway enrichment of gene lists
 - Provides: Interaction scores (0-1000), evidence types, functional enrichment
 
+### PDB (query_pdb)
+- 3D protein structures, ligand binding sites, experimental metadata
+- Use for: Structure lookup by PDB ID, finding structures for a protein, binding site analysis
+- Key info: Resolution, experimental method (X-ray, cryo-EM, NMR), ligands, organism
+- PDB IDs are 4-character codes (e.g., 1TUP for p53-DNA complex, 6LU7 for SARS-CoV-2 main protease)
+
 ### Query Strategy
 1. For gene/protein info: Start with NCBI Gene or UniProt
 2. For pathways: Use KEGG
 3. For protein interactions: Use STRING
-4. For variant effects: Use Ensembl VEP
-5. For literature: Use NCBI PubMed
+4. For 3D structures: Use PDB
+5. For variant effects: Use Ensembl VEP
+6. For literature: Use NCBI PubMed
 
 When you encounter errors, debug them systematically. Check input formats,
 tool versions, memory/disk constraints, and parameter compatibility.

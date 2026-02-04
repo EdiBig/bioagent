@@ -382,6 +382,38 @@ TOOLS = [
             },
             "required": ["proteins"]
         }
+    },
+    {
+        "name": "query_pdb",
+        "description": (
+            "Query the Protein Data Bank (PDB) for 3D protein structures and ligand binding sites. "
+            "PDB is the primary repository for experimentally determined 3D structures. Use for: "
+            "- Fetching structure details by PDB ID (e.g., 1TUP, 6LU7) "
+            "- Searching for structures by protein name, gene, or keyword "
+            "- Getting ligand and binding site information "
+            "- Retrieving experimental metadata (resolution, method, organism)"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "PDB ID (e.g., '1TUP', '6LU7') for fetch/ligands/summary, or search term for search"
+                },
+                "operation": {
+                    "type": "string",
+                    "description": "Operation type: fetch (full entry), search (find structures), ligands (binding sites), summary (brief info)",
+                    "enum": ["fetch", "search", "ligands", "summary"],
+                    "default": "fetch"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum results for search (default: 10)",
+                    "default": 10
+                }
+            },
+            "required": ["query"]
+        }
     }
 ]
 
