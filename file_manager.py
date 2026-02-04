@@ -30,6 +30,15 @@ class FileManager:
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
         self.max_read_chars = max_read_chars
 
+    def _resolve_path(self, path: str) -> Path:
+        """Resolve path, translating /workspace to actual workspace directory."""
+        # Translate /workspace paths to actual workspace
+        if path.startswith("/workspace/"):
+            return self.workspace_dir / path[11:]  # len("/workspace/") = 11
+        elif path == "/workspace":
+            return self.workspace_dir
+        return Path(path)
+
     def read_file(
         self,
         path: str,
@@ -37,7 +46,7 @@ class FileManager:
         encoding: str = "utf-8",
     ) -> FileResult:
         """Read a file's contents."""
-        file_path = Path(path)
+        file_path = self._resolve_path(path)
 
         if not file_path.exists():
             return FileResult(
@@ -97,7 +106,7 @@ class FileManager:
         self, path: str, content: str, mode: str = "w"
     ) -> FileResult:
         """Write content to a file."""
-        file_path = Path(path)
+        file_path = self._resolve_path(path)
 
         try:
             # Create parent directories
@@ -124,7 +133,7 @@ class FileManager:
         self, path: str, pattern: str = "*", recursive: bool = False
     ) -> FileResult:
         """List files in a directory."""
-        dir_path = Path(path)
+        dir_path = self._resolve_path(path)
 
         if not dir_path.exists():
             return FileResult(
