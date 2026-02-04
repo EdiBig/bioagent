@@ -1,5 +1,5 @@
 # BioAgent Tools Container
-# Pre-installed bioinformatics tools for sandboxed execution.
+# Comprehensive bioinformatics toolkit for sandboxed execution.
 #
 # Build:  docker build -t bioagent-tools -f Dockerfile.biotools .
 # Test:   docker run --rm bioagent-tools samtools --version
@@ -19,18 +19,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     wget \
     pigz \
+    gzip \
+    bzip2 \
+    unzip \
+    zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libncurses5-dev \
+    libffi-dev \
+    autoconf \
+    automake \
+    cmake \
+    default-jdk \
+    perl \
+    cpanminus \
     && rm -rf /var/lib/apt/lists/*
 
-# Create bioinformatics environment
+# Create bioinformatics environment with comprehensive tools
 RUN mamba create -n biotools -y python=3.11 && \
     mamba install -n biotools -y -c bioconda -c conda-forge \
-    # ── Read QC & Processing ──
+    # ══════════════════════════════════════════════════════════════
+    # READ QC & PROCESSING
+    # ══════════════════════════════════════════════════════════════
     fastqc=0.12.1 \
     multiqc \
     fastp \
     trimmomatic \
     cutadapt \
-    # ── Alignment ──
+    # ══════════════════════════════════════════════════════════════
+    # ALIGNMENT
+    # ══════════════════════════════════════════════════════════════
     bwa-mem2 \
     star \
     hisat2 \
@@ -39,41 +59,181 @@ RUN mamba create -n biotools -y python=3.11 && \
     samtools \
     picard \
     sambamba \
-    # ── Variant Calling ──
+    # ══════════════════════════════════════════════════════════════
+    # VARIANT CALLING
+    # ══════════════════════════════════════════════════════════════
     gatk4 \
     bcftools \
     freebayes \
-    # ── Quantification ──
+    # ══════════════════════════════════════════════════════════════
+    # VARIANT ANNOTATION
+    # ══════════════════════════════════════════════════════════════
+    ensembl-vep \
+    snpeff \
+    snpsift \
+    # ══════════════════════════════════════════════════════════════
+    # STRUCTURAL VARIANTS
+    # ══════════════════════════════════════════════════════════════
+    manta \
+    delly \
+    lumpy-sv \
+    svaba \
+    svtools \
+    survivor \
+    # ══════════════════════════════════════════════════════════════
+    # LONG-READ ANALYSIS
+    # ══════════════════════════════════════════════════════════════
+    # minimap2 already included above
+    medaka \
+    longshot \
+    # Note: clair3 requires separate install due to TensorFlow deps
+    nanopolish \
+    nanoplot \
+    nanoqc \
+    porechop \
+    # ══════════════════════════════════════════════════════════════
+    # METAGENOMICS
+    # ══════════════════════════════════════════════════════════════
+    kraken2 \
+    bracken \
+    metaphlan \
+    humann \
+    kaiju \
+    centrifuge \
+    # ══════════════════════════════════════════════════════════════
+    # GENOME/TRANSCRIPTOME ASSEMBLY
+    # ══════════════════════════════════════════════════════════════
+    spades \
+    megahit \
+    flye \
+    hifiasm \
+    trinity \
+    quast \
+    busco \
+    # ══════════════════════════════════════════════════════════════
+    # PHYLOGENETICS
+    # ══════════════════════════════════════════════════════════════
+    raxml-ng \
+    iqtree \
+    beast2 \
+    mafft \
+    muscle \
+    clustalw \
+    fasttree \
+    # ══════════════════════════════════════════════════════════════
+    # PROTEIN ANALYSIS
+    # ══════════════════════════════════════════════════════════════
+    hmmer \
+    blast \
+    diamond \
+    # Note: interproscan is large, install separately if needed
+    prodigal \
+    augustus \
+    # ══════════════════════════════════════════════════════════════
+    # EPIGENOMICS
+    # ══════════════════════════════════════════════════════════════
+    macs2 \
+    homer \
+    chromhmm \
+    deeptools \
+    methyldackel \
+    bismark \
+    # ══════════════════════════════════════════════════════════════
+    # QUANTIFICATION
+    # ══════════════════════════════════════════════════════════════
     subread \
     salmon \
     kallisto \
-    # ── Utilities ──
+    rsem \
+    htseq \
+    # ══════════════════════════════════════════════════════════════
+    # UTILITIES
+    # ══════════════════════════════════════════════════════════════
     bedtools \
-    deeptools \
-    # ── Python Data Science ──
+    seqtk \
+    seqkit \
+    csvtk \
+    parallel \
+    # ══════════════════════════════════════════════════════════════
+    # PYTHON DATA SCIENCE
+    # ══════════════════════════════════════════════════════════════
     numpy \
     pandas \
     scipy \
     scikit-learn \
     matplotlib \
     seaborn \
+    plotly \
     biopython \
     pysam \
+    pyvcf3 \
+    pybedtools \
     scanpy \
     anndata \
-    # ── R + Bioconductor ──
+    leidenalg \
+    umap-learn \
+    # ══════════════════════════════════════════════════════════════
+    # R + BIOCONDUCTOR
+    # ══════════════════════════════════════════════════════════════
     r-base=4.3 \
     bioconductor-deseq2 \
     bioconductor-edger \
     bioconductor-limma \
     bioconductor-clusterprofiler \
     bioconductor-sva \
+    bioconductor-genomicranges \
+    bioconductor-rtracklayer \
+    bioconductor-chipseeker \
+    bioconductor-diffbind \
     r-ggplot2 \
     r-pheatmap \
+    r-dplyr \
+    r-tidyr \
+    r-data.table \
+    r-seurat \
     && mamba clean --all --yes
+
+# ══════════════════════════════════════════════════════════════════
+# ADDITIONAL TOOLS (not available via conda)
+# ══════════════════════════════════════════════════════════════════
+
+# Install Clair3 for long-read variant calling
+RUN pip install clair3 && pip cache purge
+
+# InterProScan (optional - large download ~10GB)
+# Uncomment if you need protein domain annotation
+# RUN mkdir -p /opt/interproscan && \
+#     cd /opt/interproscan && \
+#     wget -q ftp://ftp.ebi.ac.uk/pub/software/unix/iprscan/5/5.66-98.0/interproscan-5.66-98.0-64-bit.tar.gz && \
+#     tar -xzf interproscan-5.66-98.0-64-bit.tar.gz && \
+#     rm interproscan-5.66-98.0-64-bit.tar.gz
+# ENV PATH="/opt/interproscan/interproscan-5.66-98.0:$PATH"
+
+# ANNOVAR (requires license - download manually if needed)
+# Place annovar.tar.gz in build context if you have a license
+# COPY annovar.tar.gz /opt/
+# RUN cd /opt && tar -xzf annovar.tar.gz && rm annovar.tar.gz
+# ENV PATH="/opt/annovar:$PATH"
 
 # Make biotools the default environment
 ENV PATH="/opt/conda/envs/biotools/bin:$PATH"
+ENV CONDA_DEFAULT_ENV=biotools
+
+# Set up R library path
+ENV R_LIBS_USER="/opt/conda/envs/biotools/lib/R/library"
+
+# Verify key tools are installed
+RUN echo "=== Verifying tool installation ===" && \
+    samtools --version | head -1 && \
+    bcftools --version | head -1 && \
+    bwa-mem2 version 2>&1 | head -1 && \
+    minimap2 --version && \
+    kraken2 --version | head -1 && \
+    spades.py --version 2>&1 | head -1 && \
+    macs2 --version 2>&1 && \
+    hmmer --version 2>&1 | head -1 || true && \
+    diamond version && \
+    echo "=== All tools verified ==="
 
 WORKDIR /workspace
 
