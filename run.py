@@ -110,14 +110,21 @@ def main():
     # Single query mode
     if args.query:
         response = agent.run(args.query)
-        print(response)
+        # Handle Unicode characters that Windows console can't display
+        try:
+            print(response)
+        except UnicodeEncodeError:
+            print(response.encode(sys.stdout.encoding, errors='replace').decode(sys.stdout.encoding))
         if args.save_session:
             agent.save_session(args.save_session)
         return
 
     if args.complex:
         response = agent.run(args.complex, use_complex_model=True)
-        print(response)
+        try:
+            print(response)
+        except UnicodeEncodeError:
+            print(response.encode(sys.stdout.encoding, errors='replace').decode(sys.stdout.encoding))
         if args.save_session:
             agent.save_session(args.save_session)
         return
