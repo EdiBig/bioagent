@@ -5,8 +5,19 @@ Loads settings from environment variables and .env file.
 """
 
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+
+def _default_workspace() -> str:
+    """Return platform-appropriate default workspace directory."""
+    if sys.platform == "win32":
+        # Windows: use user's home directory
+        return str(Path.home() / "bioagent_workspace")
+    else:
+        # Linux/macOS: use /workspace (common in containers)
+        return "/workspace"
 
 
 @dataclass
@@ -25,7 +36,7 @@ class Config:
     ncbi_email: str = ""  # Required by NCBI
 
     # ── Execution ────────────────────────────────────────────────────
-    workspace_dir: str = "/workspace"
+    workspace_dir: str = ""  # Set dynamically based on platform
     use_docker: bool = False
     docker_image: str = "bioagent-tools:latest"
     max_execution_timeout: int = 600
@@ -47,7 +58,7 @@ class Config:
             temperature=float(os.getenv("BIOAGENT_TEMPERATURE", "0.0")),
             ncbi_api_key=os.getenv("NCBI_API_KEY", ""),
             ncbi_email=os.getenv("NCBI_EMAIL", ""),
-            workspace_dir=os.getenv("BIOAGENT_WORKSPACE", "/workspace"),
+            workspace_dir=os.getenv("BIOAGENT_WORKSPACE", _default_workspace()),
             use_docker=os.getenv("BIOAGENT_USE_DOCKER", "false").lower() == "true",
             docker_image=os.getenv("BIOAGENT_DOCKER_IMAGE", "bioagent-tools:latest"),
             max_execution_timeout=int(os.getenv("BIOAGENT_TIMEOUT", "600")),
