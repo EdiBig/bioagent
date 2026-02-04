@@ -22,19 +22,57 @@ class WDLEngine(WorkflowEngine):
         self.wdl_dir = self.workflows_dir / "wdl"
         self.wdl_dir.mkdir(parents=True, exist_ok=True)
         self.cromwell_jar = cromwell_jar
+        self._miniwdl_cmd = None
+
+    def _get_miniwdl_command(self) -> list[str]:
+        """Get the command to run miniwdl."""
+        if self._miniwdl_cmd:
+            return self._miniwdl_cmd
+
+        import os
+        import subprocess
+
+        # On Windows, miniwdl requires WSL (uses fcntl which is Unix-only)
+        if os.name == 'nt':
+            try:
+                result = subprocess.run(
+                    ["wsl", "-d", "Ubuntu", "-e", "bash", "-c", 'export PATH="$HOME/.local/bin:$PATH" && miniwdl --version'],
+                    capture_output=True, text=True, timeout=30
+                )
+                if result.returncode == 0:
+                    self._miniwdl_cmd = ["wsl", "-d", "Ubuntu", "-e", "bash", "-c"]
+                    return self._miniwdl_cmd
+            except:
+                pass
+
+        # Try direct miniwdl command (Linux/macOS)
+        self._miniwdl_cmd = ["miniwdl"]
+        return self._miniwdl_cmd
 
     def check_installation(self) -> tuple[bool, str]:
         """Check if Cromwell/WDL tools are available."""
-        # Check for womtool (WDL validator)
-        code, stdout, stderr = self._run_command(["java", "-version"])
-        if code != 0:
-            return False, "Java is not installed. Install Java 11+ for Cromwell."
+        import os
+        import subprocess
 
-        # Check for miniwdl as alternative
+        # On Windows, check WSL for miniwdl
+        if os.name == 'nt':
+            try:
+                result = subprocess.run(
+                    ["wsl", "-d", "Ubuntu", "-e", "bash", "-c", 'export PATH="$HOME/.local/bin:$PATH" && miniwdl --version'],
+                    capture_output=True, text=True, timeout=30
+                )
+                if result.returncode == 0:
+                    version = result.stdout.strip()
+                    return True, f"{version} is installed (via WSL)"
+            except:
+                pass
+            return False, "miniwdl not found in WSL. Install with: wsl pip3 install --user miniwdl"
+
+        # Check for miniwdl on Unix
         code, stdout, stderr = self._run_command(["miniwdl", "--version"])
         if code == 0:
             version = stdout.strip()
-            return True, f"miniwdl {version} is installed"
+            return True, f"{version} is installed"
 
         # Check for cromwell jar
         if self.cromwell_jar and Path(self.cromwell_jar).exists():
@@ -80,6 +118,48 @@ class WDLEngine(WorkflowEngine):
             outputs={"workflow_path": str(main_wdl)},
         )
 
+    def _convert_to_wsl_path(self, windows_path: str) -> str:
+        """Convert Windows path to WSL path."""
+        path = str(windows_path).replace("\\", "/")
+        if len(path) >= 2 and path[1] == ":":
+            drive = path[0].lower()
+            path = f"/mnt/{drive}{path[2:]}"
+        return path
+
+    def _run_miniwdl_command(self, args: list[str], cwd: str | None = None, timeout: int = 7200) -> tuple[int, str, str]:
+        """Run miniwdl command, using WSL on Windows."""
+        import os
+        import subprocess
+
+        if os.name == 'nt':
+            # Convert paths to WSL format
+            wsl_args = []
+            for arg in args:
+                # Check if it looks like a Windows path
+                if len(arg) >= 2 and arg[1] == ":":
+                    wsl_args.append(self._convert_to_wsl_path(arg))
+                elif "\\" in arg:
+                    wsl_args.append(self._convert_to_wsl_path(arg))
+                else:
+                    wsl_args.append(arg)
+
+            wsl_cwd = self._convert_to_wsl_path(cwd) if cwd else None
+            cd_cmd = f"cd '{wsl_cwd}' && " if wsl_cwd else ""
+            cmd_str = f'export PATH="$HOME/.local/bin:$PATH" && {cd_cmd}miniwdl {" ".join(wsl_args)}'
+
+            try:
+                result = subprocess.run(
+                    ["wsl", "-d", "Ubuntu", "-e", "bash", "-c", cmd_str],
+                    capture_output=True, text=True, timeout=timeout
+                )
+                return result.returncode, result.stdout, result.stderr
+            except subprocess.TimeoutExpired:
+                return -1, "", f"Command timed out after {timeout} seconds"
+            except Exception as e:
+                return -1, "", str(e)
+        else:
+            return self._run_command(["miniwdl"] + args, cwd=cwd, timeout=timeout)
+
     def validate_workflow(self, workflow_path: str) -> WorkflowResult:
         """Validate a WDL workflow syntax."""
         workflow_path = Path(workflow_path)
@@ -95,8 +175,8 @@ class WDLEngine(WorkflowEngine):
                 status=WorkflowStatus.FAILED,
             )
 
-        # Try miniwdl check first
-        code, stdout, stderr = self._run_command(["miniwdl", "check", str(wdl_file)])
+        # Try miniwdl check
+        code, stdout, stderr = self._run_miniwdl_command(["check", str(wdl_file)], cwd=str(wdl_file.parent))
 
         if code == 0:
             return WorkflowResult(
@@ -151,29 +231,29 @@ class WDLEngine(WorkflowEngine):
                 status=WorkflowStatus.FAILED,
             )
 
-        # Build miniwdl command
-        cmd = ["miniwdl", "run", str(wdl_file)]
+        # Build miniwdl command arguments
+        args = ["run", str(wdl_file)]
 
         # Add inputs file if it exists
         inputs_file = workflow_path / "inputs.json"
         if inputs_file.exists():
-            cmd.extend(["-i", str(inputs_file)])
+            args.extend(["-i", str(inputs_file)])
 
         # Add command-line inputs
         if params:
             for key, value in params.items():
                 if isinstance(value, (list, dict)):
-                    cmd.append(f"{key}={json.dumps(value)}")
+                    args.append(f"{key}={json.dumps(value)}")
                 else:
-                    cmd.append(f"{key}={value}")
+                    args.append(f"{key}={value}")
 
         # Set output directory
         output_dir = workflow_path / "output"
-        cmd.extend(["-d", str(output_dir)])
+        args.extend(["-d", str(output_dir)])
 
-        # Run workflow
-        code, stdout, stderr = self._run_command(
-            cmd,
+        # Run workflow using WSL on Windows
+        code, stdout, stderr = self._run_miniwdl_command(
+            args,
             cwd=str(workflow_path),
             timeout=7200,  # 2 hour timeout
         )
