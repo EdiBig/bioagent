@@ -46,6 +46,8 @@ class Config:
     verbose: bool = True  # Print tool calls and results
     log_file: str | None = None  # Optional file to log interactions
     enable_extended_thinking: bool = False  # Use extended thinking for complex queries
+    auto_save_results: bool = True  # Automatically save query results to files
+    results_dir: str = "results"  # Subdirectory for auto-saved results
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -66,6 +68,8 @@ class Config:
             verbose=os.getenv("BIOAGENT_VERBOSE", "true").lower() == "true",
             log_file=os.getenv("BIOAGENT_LOG_FILE", None),
             enable_extended_thinking=os.getenv("BIOAGENT_EXTENDED_THINKING", "false").lower() == "true",
+            auto_save_results=os.getenv("BIOAGENT_AUTO_SAVE", "true").lower() == "true",
+            results_dir=os.getenv("BIOAGENT_RESULTS_DIR", "results"),
         )
 
     def validate(self) -> list[str]:
