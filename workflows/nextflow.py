@@ -21,15 +21,68 @@ class NextflowEngine(WorkflowEngine):
         super().__init__(workspace_dir)
         self.nf_dir = self.workflows_dir / "nextflow"
         self.nf_dir.mkdir(parents=True, exist_ok=True)
+        self._nextflow_cmd = None  # Will be set by check_installation
+
+    def _get_nextflow_command(self) -> list[str]:
+        """Get the command to run Nextflow."""
+        if self._nextflow_cmd:
+            return self._nextflow_cmd
+
+        import os
+        import subprocess
+
+        # On Windows, prefer running via WSL for full compatibility
+        if os.name == 'nt':
+            # Check if WSL is available and has nextflow
+            try:
+                result = subprocess.run(
+                    ["wsl", "which", "nextflow"],
+                    capture_output=True, text=True, timeout=10
+                )
+                if result.returncode == 0:
+                    self._nextflow_cmd = ["wsl", "nextflow"]
+                    return self._nextflow_cmd
+            except:
+                pass
+
+            # Check if WSL can run nextflow via curl install
+            try:
+                result = subprocess.run(
+                    ["wsl", "bash", "-c", "command -v nextflow || (curl -s https://get.nextflow.io | bash && ./nextflow -version)"],
+                    capture_output=True, text=True, timeout=120
+                )
+            except:
+                pass
+
+        # Try different ways to run Nextflow natively
+        # 1. Check for nextflow-dist in user's nextflow directory
+        user_nf_dist = Path(os.path.expanduser("~/nextflow/nextflow-dist"))
+        if user_nf_dist.exists():
+            self._nextflow_cmd = ["java", "-jar", str(user_nf_dist)]
+            return self._nextflow_cmd
+
+        # 2. Try direct nextflow command
+        self._nextflow_cmd = ["nextflow"]
+        return self._nextflow_cmd
 
     def check_installation(self) -> tuple[bool, str]:
         """Check if Nextflow is installed."""
-        code, stdout, stderr = self._run_command(["nextflow", "-version"])
+        cmd = self._get_nextflow_command()
+        code, stdout, stderr = self._run_command(cmd + ["-version"])
         if code == 0:
             # Extract version from output
             version_match = re.search(r"version (\d+\.\d+\.\d+)", stdout)
             version = version_match.group(1) if version_match else "unknown"
             return True, f"Nextflow {version} is installed"
+
+        # Reset command and try direct nextflow
+        self._nextflow_cmd = ["nextflow"]
+        code, stdout, stderr = self._run_command(["nextflow", "-version"])
+        if code == 0:
+            version_match = re.search(r"version (\d+\.\d+\.\d+)", stdout)
+            version = version_match.group(1) if version_match else "unknown"
+            return True, f"Nextflow {version} is installed"
+
         return False, "Nextflow is not installed. Install with: curl -s https://get.nextflow.io | bash"
 
     def create_workflow(
@@ -111,8 +164,14 @@ class NextflowEngine(WorkflowEngine):
                 status=WorkflowStatus.FAILED,
             )
 
-        # Build command
-        cmd = ["nextflow", "run", str(main_nf)]
+        # Build command using the detected Nextflow installation
+        nf_cmd = self._get_nextflow_command()
+        cmd = nf_cmd + ["run", str(main_nf)]
+
+        # Add Windows compatibility flags
+        import os
+        if os.name == 'nt':
+            cmd.extend(["-ansi-log", "false"])
 
         if resume:
             cmd.append("-resume")
