@@ -1,0 +1,80 @@
+# BioAgent Tools Container
+# Pre-installed bioinformatics tools for sandboxed execution.
+#
+# Build:  docker build -t bioagent-tools -f Dockerfile.biotools .
+# Test:   docker run --rm bioagent-tools samtools --version
+#
+# This container is used when BIOAGENT_USE_DOCKER=true.
+# The agent mounts /workspace into the container for file access.
+
+FROM condaforge/mambaforge:latest AS base
+
+# Avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    wget \
+    pigz \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create bioinformatics environment
+RUN mamba create -n biotools -y python=3.11 && \
+    mamba install -n biotools -y -c bioconda -c conda-forge \
+    # ── Read QC & Processing ──
+    fastqc=0.12.1 \
+    multiqc \
+    fastp \
+    trimmomatic \
+    cutadapt \
+    # ── Alignment ──
+    bwa-mem2 \
+    star \
+    hisat2 \
+    bowtie2 \
+    minimap2 \
+    samtools \
+    picard \
+    sambamba \
+    # ── Variant Calling ──
+    gatk4 \
+    bcftools \
+    freebayes \
+    # ── Quantification ──
+    subread \
+    salmon \
+    kallisto \
+    # ── Utilities ──
+    bedtools \
+    deeptools \
+    # ── Python Data Science ──
+    numpy \
+    pandas \
+    scipy \
+    scikit-learn \
+    matplotlib \
+    seaborn \
+    biopython \
+    pysam \
+    scanpy \
+    anndata \
+    # ── R + Bioconductor ──
+    r-base=4.3 \
+    bioconductor-deseq2 \
+    bioconductor-edger \
+    bioconductor-limma \
+    bioconductor-clusterprofiler \
+    bioconductor-sva \
+    r-ggplot2 \
+    r-pheatmap \
+    && mamba clean --all --yes
+
+# Make biotools the default environment
+ENV PATH="/opt/conda/envs/biotools/bin:$PATH"
+
+WORKDIR /workspace
+
+CMD ["bash"]
