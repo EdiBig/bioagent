@@ -27,6 +27,9 @@ from string_db import STRINGClient
 from pdb import PDBClient
 from alphafold import AlphaFoldClient
 from interpro import InterProClient
+from reactome import ReactomeClient
+from gene_ontology import GeneOntologyClient
+from gnomad import GnomADClient
 from file_manager import FileManager
 
 
@@ -72,6 +75,9 @@ class BioAgent:
         self.pdb = PDBClient()
         self.alphafold = AlphaFoldClient()
         self.interpro = InterProClient()
+        self.reactome = ReactomeClient()
+        self.go = GeneOntologyClient()
+        self.gnomad = GnomADClient()
         self.files = FileManager(workspace_dir=self.config.workspace_dir)
 
         # Conversation history
@@ -323,6 +329,31 @@ class BioAgent:
                 )
                 return result.to_string()
 
+            elif name == "query_reactome":
+                result = self.reactome.query(
+                    query=input_data["query"],
+                    operation=input_data.get("operation", "pathway"),
+                    species=input_data.get("species", "Homo sapiens"),
+                    limit=input_data.get("limit", 20),
+                )
+                return result.to_string()
+
+            elif name == "query_go":
+                result = self.go.query(
+                    query=input_data["query"],
+                    operation=input_data.get("operation", "term"),
+                    limit=input_data.get("limit", 25),
+                )
+                return result.to_string()
+
+            elif name == "query_gnomad":
+                result = self.gnomad.query(
+                    query=input_data["query"],
+                    operation=input_data.get("operation", "variant"),
+                    dataset=input_data.get("dataset", "gnomad_r4"),
+                )
+                return result.to_string()
+
             elif name == "read_file":
                 result = self.files.read_file(
                     path=input_data["path"],
@@ -381,7 +412,7 @@ class BioAgent:
             self._log(f"   Code:\n   {preview}")
         elif tool_name == "execute_bash":
             self._log(f"   Command: {tool_input.get('command', '')}")
-        elif tool_name in ("query_ncbi", "query_ensembl", "query_uniprot", "query_kegg", "query_string", "query_pdb", "query_alphafold", "query_interpro"):
+        elif tool_name in ("query_ncbi", "query_ensembl", "query_uniprot", "query_kegg", "query_string", "query_pdb", "query_alphafold", "query_interpro", "query_reactome", "query_go", "query_gnomad"):
             self._log(f"   Query: {json.dumps(tool_input, indent=2)[:300]}")
         else:
             self._log(f"   Input: {json.dumps(tool_input)[:300]}")

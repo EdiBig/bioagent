@@ -474,6 +474,107 @@ TOOLS = [
             },
             "required": ["query"]
         }
+    },
+    {
+        "name": "query_reactome",
+        "description": (
+            "Query Reactome for curated biological pathways with mechanistic detail. "
+            "Reactome provides high-quality pathway data for humans and other species. Use for: "
+            "- Getting pathway details by Reactome ID (e.g., R-HSA-109582) "
+            "- Finding pathways containing a specific gene "
+            "- Searching pathways by name or biological process "
+            "- Getting reactions within a pathway"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Reactome pathway ID (R-HSA-...), gene symbol, or search term"
+                },
+                "operation": {
+                    "type": "string",
+                    "description": "Operation type: pathway (details), search (find pathways), genes (pathways for gene), reactions (pathway reactions)",
+                    "enum": ["pathway", "search", "genes", "reactions"],
+                    "default": "search"
+                },
+                "species": {
+                    "type": "string",
+                    "description": "Species name (default: Homo sapiens)",
+                    "default": "Homo sapiens"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum results for search (default: 20)",
+                    "default": 20
+                }
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "query_go",
+        "description": (
+            "Query Gene Ontology (GO) for functional annotations via QuickGO. "
+            "GO provides standardized terms for biological process, molecular function, and cellular component. Use for: "
+            "- Looking up GO term details by ID (e.g., GO:0008150) "
+            "- Getting GO annotations for a gene or protein "
+            "- Searching GO terms by name or description "
+            "- Finding child terms in the GO hierarchy"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "GO ID (GO:0008150), gene symbol, UniProt ID, or search term"
+                },
+                "operation": {
+                    "type": "string",
+                    "description": "Operation type: term (GO term details), search (find terms), annotations (gene annotations), children (child terms)",
+                    "enum": ["term", "search", "annotations", "children"],
+                    "default": "term"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum results (default: 25)",
+                    "default": 25
+                }
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "query_gnomad",
+        "description": (
+            "Query gnomAD for population allele frequencies and gene constraint metrics. "
+            "gnomAD aggregates exome/genome data from >140,000 individuals. Use for: "
+            "- Getting variant allele frequencies by variant ID (chr-pos-ref-alt) "
+            "- Getting gene constraint scores (pLI, LOEUF) to assess LoF intolerance "
+            "- Finding variants in a genomic region "
+            "- Population-specific frequency data"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Variant ID (1-55516888-G-A), gene symbol (for constraint), or region (1:55516000-55520000)"
+                },
+                "operation": {
+                    "type": "string",
+                    "description": "Operation type: variant (allele frequencies), gene (constraint metrics), region (variants in region)",
+                    "enum": ["variant", "gene", "region"],
+                    "default": "variant"
+                },
+                "dataset": {
+                    "type": "string",
+                    "description": "gnomAD dataset version (default: gnomad_r4)",
+                    "default": "gnomad_r4"
+                }
+            },
+            "required": ["query"]
+        }
     }
 ]
 

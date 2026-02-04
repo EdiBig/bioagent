@@ -169,14 +169,38 @@ Choose the appropriate database for each query type:
 - Query by: UniProt accession (protein domains), InterPro ID (IPR000001), or search term
 - Provides: Domain boundaries, family classification, GO terms, functional sites
 
+### Reactome (query_reactome)
+- Curated biological pathways with detailed reaction mechanisms
+- Use for: Pathway analysis, understanding molecular mechanisms, finding sub-pathways
+- Operations: pathway (details), search (find pathways), genes (pathways for a gene), reactions
+- Best for: Detailed mechanistic pathway information, human pathways, literature-backed annotations
+- IDs: R-HSA-##### format (e.g., R-HSA-1640170 for Cell Cycle)
+
+### Gene Ontology (query_go)
+- Controlled vocabulary for gene functions (biological process, molecular function, cellular component)
+- Use for: GO term lookup, functional annotation, finding GO terms for genes
+- Operations: term (GO ID details), search (find terms), annotations (GO terms for a gene), children
+- Key terms: BP = Biological Process, MF = Molecular Function, CC = Cellular Component
+- GO IDs: GO:####### format (e.g., GO:0008150 for biological process)
+
+### gnomAD (query_gnomad)
+- Population allele frequencies from >140,000 exomes and >76,000 genomes
+- Use for: Checking variant frequency in populations, gene constraint metrics, pathogenicity assessment
+- Operations: variant (frequency by rsID or HGVS), gene (constraint metrics like pLI, LOEUF), region
+- Key metrics: pLI (loss-of-function intolerance), LOEUF (constraint score), population frequencies
+- Critical for: Variant interpretation, identifying rare variants, assessing gene tolerance to mutations
+
 ### Query Strategy
 1. For gene/protein info: Start with NCBI Gene or UniProt
-2. For pathways: Use KEGG
+2. For pathways: Use KEGG (metabolic focus) or Reactome (mechanistic detail)
 3. For protein interactions: Use STRING
 4. For 3D structures: Use PDB first, then AlphaFold if no experimental structure
 5. For protein domains: Use InterPro
 6. For variant effects: Use Ensembl VEP
-7. For literature: Use NCBI PubMed
+7. For variant population frequency: Use gnomAD
+8. For gene function/GO terms: Use Gene Ontology (QuickGO)
+9. For literature: Use NCBI PubMed
+10. For gene constraint/intolerance: Use gnomAD gene query (pLI, LOEUF)
 
 When you encounter errors, debug them systematically. Check input formats,
 tool versions, memory/disk constraints, and parameter compatibility.
