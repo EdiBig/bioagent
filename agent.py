@@ -32,6 +32,7 @@ from gene_ontology import GeneOntologyClient
 from gnomad import GnomADClient
 from file_manager import FileManager
 from workflows import WorkflowManager, format_engine_status
+from web_search import WebSearchClient
 
 
 class BioAgent:
@@ -79,6 +80,7 @@ class BioAgent:
         self.reactome = ReactomeClient()
         self.go = GeneOntologyClient()
         self.gnomad = GnomADClient()
+        self.web_search = WebSearchClient()
         self.files = FileManager(workspace_dir=self.config.workspace_dir)
         self.workflows = WorkflowManager(workspace_dir=self.config.workspace_dir)
 
@@ -381,12 +383,11 @@ class BioAgent:
                 return result.to_string()
 
             elif name == "web_search":
-                # Placeholder — can integrate with a search API
-                return (
-                    "Web search is not yet configured. "
-                    "To enable it, integrate a search API (e.g., Tavily, SerpAPI) "
-                    "in the _execute_tool method."
+                result = self.web_search.search(
+                    query=input_data.get("query", ""),
+                    max_results=input_data.get("max_results", 10),
                 )
+                return result.to_string()
 
             # ── Workflow Engine Tools ─────────────────────────────────────
             elif name == "workflow_create":
