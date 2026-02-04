@@ -23,6 +23,12 @@ class SnakemakeEngine(WorkflowEngine):
 
     def check_installation(self) -> tuple[bool, str]:
         """Check if Snakemake is installed."""
+        # Try python -m snakemake first (more reliable cross-platform)
+        code, stdout, stderr = self._run_command(["python", "-m", "snakemake", "--version"])
+        if code == 0:
+            version = stdout.strip()
+            return True, f"Snakemake {version} is installed"
+        # Fallback to direct command
         code, stdout, stderr = self._run_command(["snakemake", "--version"])
         if code == 0:
             version = stdout.strip()
@@ -112,8 +118,8 @@ class SnakemakeEngine(WorkflowEngine):
                 status=WorkflowStatus.FAILED,
             )
 
-        # Build command
-        cmd = ["snakemake", "-s", str(snakefile), "--cores", str(cores)]
+        # Build command (use python -m for cross-platform compatibility)
+        cmd = ["python", "-m", "snakemake", "-s", str(snakefile), "--cores", str(cores)]
 
         if dry_run:
             cmd.append("--dry-run")
@@ -281,11 +287,10 @@ class SnakemakeEngine(WorkflowEngine):
             )
 
         dag_file = workflow_dir / "dag.svg"
-        cmd = ["snakemake", "-s", str(snakefile), "--dag", "|", "dot", "-Tsvg", ">", str(dag_file)]
 
-        # This needs shell=True for piping
+        # Use python -m for cross-platform compatibility
         code, stdout, stderr = self._run_command(
-            ["snakemake", "-s", str(snakefile), "--dag"],
+            ["python", "-m", "snakemake", "-s", str(snakefile), "--dag"],
             cwd=str(workflow_dir),
         )
 
