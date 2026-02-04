@@ -728,6 +728,134 @@ TOOLS = [
             "type": "object",
             "properties": {}
         }
+    },
+    # ── Memory System Tools ────────────────────────────────────────────
+    {
+        "name": "memory_search",
+        "description": (
+            "Search your memory for relevant past analyses, tool results, and findings. "
+            "Use semantic search to find information from previous sessions. "
+            "Helpful when you need to recall past analyses or avoid re-running queries. "
+            "The memory system automatically indexes significant tool results and completed analyses."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Semantic search query (e.g., 'TP53 mutation analysis', 'DESeq2 differential expression results')"
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return (default: 5)",
+                    "default": 5
+                }
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "memory_save_artifact",
+        "description": (
+            "Save an intermediate result or data artifact for later retrieval. "
+            "Use for: dataframes, analysis results, sequences, code snippets, or any data "
+            "you want to preserve and access later. Artifacts persist across sessions."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Human-readable name for the artifact (e.g., 'deseq2_results_batch1')"
+                },
+                "content": {
+                    "type": "string",
+                    "description": "The content to save (text, JSON, CSV data, etc.)"
+                },
+                "artifact_type": {
+                    "type": "string",
+                    "description": "Type of artifact",
+                    "enum": ["dataframe", "plot", "sequence", "code", "analysis_result", "alignment", "structure", "tree", "network", "table", "text", "json", "other"],
+                    "default": "analysis_result"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Description of what this artifact contains and its purpose"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Tags for categorization (e.g., ['rnaseq', 'deseq2', 'batch1'])"
+                }
+            },
+            "required": ["name", "content", "description"]
+        }
+    },
+    {
+        "name": "memory_list_artifacts",
+        "description": (
+            "List saved artifacts, optionally filtered by type or search query. "
+            "Use to find previously saved intermediate results and data."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "artifact_type": {
+                    "type": "string",
+                    "description": "Filter by artifact type (optional)",
+                    "enum": ["dataframe", "plot", "sequence", "code", "analysis_result", "alignment", "structure", "tree", "network", "table", "text", "json", "other"]
+                },
+                "query": {
+                    "type": "string",
+                    "description": "Search query to filter artifacts by name/description (optional)"
+                }
+            }
+        }
+    },
+    {
+        "name": "memory_read_artifact",
+        "description": (
+            "Read the contents of a previously saved artifact by its ID. "
+            "Use memory_list_artifacts first to find the artifact ID."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "artifact_id": {
+                    "type": "string",
+                    "description": "The artifact ID (returned from memory_list_artifacts)"
+                }
+            },
+            "required": ["artifact_id"]
+        }
+    },
+    {
+        "name": "memory_get_entities",
+        "description": (
+            "Query the knowledge graph for biological entities and their relationships. "
+            "The system automatically tracks genes, proteins, variants, pathways, and other "
+            "biological entities encountered during analyses. Use to see what entities "
+            "have been discussed and how they relate to each other."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query for entity name (e.g., 'TP53', 'BRCA1')"
+                },
+                "entity_type": {
+                    "type": "string",
+                    "description": "Filter by entity type (optional)",
+                    "enum": ["gene", "protein", "variant", "pathway", "sample", "organism", "disease", "drug", "publication", "structure", "domain", "go_term", "other"]
+                },
+                "include_relationships": {
+                    "type": "boolean",
+                    "description": "Include relationships for found entities (default: false)",
+                    "default": False
+                }
+            }
+        }
     }
 ]
 

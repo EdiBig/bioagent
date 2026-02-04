@@ -24,7 +24,7 @@ from ensembl import EnsemblClient
 from uniprot import UniProtClient
 from kegg import KEGGClient
 from string_db import STRINGClient
-from pdb import PDBClient
+from pdb_client import PDBClient
 from alphafold import AlphaFoldClient
 from interpro import InterProClient
 from reactome import ReactomeClient
@@ -33,6 +33,7 @@ from gnomad import GnomADClient
 from file_manager import FileManager
 from workflows import WorkflowManager, format_engine_status
 from web_search import WebSearchClient
+from memory import MemoryConfig, ContextManager
 
 
 class BioAgent:
@@ -84,6 +85,22 @@ class BioAgent:
         self.files = FileManager(workspace_dir=self.config.workspace_dir)
         self.workflows = WorkflowManager(workspace_dir=self.config.workspace_dir)
 
+        # Initialize memory system
+        self.memory = None
+        if self.config.enable_memory:
+            try:
+                memory_config = MemoryConfig.from_env(self.config.workspace_dir)
+                memory_config.enable_rag = self.config.enable_rag
+                memory_config.enable_summaries = self.config.enable_summaries
+                memory_config.enable_knowledge_graph = self.config.enable_knowledge_graph
+                memory_config.enable_artifacts = self.config.enable_artifacts
+                memory_config.summary_after_rounds = self.config.summary_after_rounds
+                self.memory = ContextManager(memory_config, self.client)
+                self._log(f"🧠 Memory system initialized: {memory_config}")
+            except Exception as e:
+                self._log(f"⚠️  Memory system initialization failed: {e}")
+                self.memory = None
+
         # Conversation history
         self.messages: list[dict] = []
 
@@ -117,8 +134,20 @@ class BioAgent:
         for round_num in range(1, self.config.max_tool_rounds + 1):
             self._log(f"\n--- Round {round_num} ---")
 
+            # Get enhanced context from memory system
+            memory_context = ""
+            if self.memory:
+                try:
+                    memory_context = self.memory.get_enhanced_context(
+                        user_message, self.messages, round_num
+                    )
+                    if memory_context and round_num == 1:
+                        self._log(f"🧠 Memory context injected ({len(memory_context)} chars)")
+                except Exception as e:
+                    self._log(f"⚠️  Memory context error: {e}")
+
             # Call Claude
-            response = self._call_claude(model)
+            response = self._call_claude(model, memory_context)
 
             # Check for stop conditions
             if response.stop_reason == "end_turn":
@@ -126,6 +155,13 @@ class BioAgent:
                 final_text = self._extract_text(response)
                 self.messages.append({"role": "assistant", "content": response.content})
                 self._log(f"\n✅ Final response ({len(final_text)} chars)")
+
+                # Update memory with completed analysis
+                if self.memory:
+                    try:
+                        self.memory.on_analysis_complete(user_message, final_text, tools_used)
+                    except Exception as e:
+                        self._log(f"⚠️  Memory analysis save error: {e}")
 
                 # Auto-save results
                 self._auto_save_result(user_message, final_text, tools_used if tools_used else None)
@@ -145,6 +181,13 @@ class BioAgent:
                 # Add assistant message + tool results to history
                 self.messages.append({"role": "assistant", "content": response.content})
                 self.messages.append({"role": "user", "content": tool_results})
+
+                # Update memory after round complete
+                if self.memory:
+                    try:
+                        self.memory.on_round_complete(self.messages, round_num, tools_used)
+                    except Exception as e:
+                        self._log(f"⚠️  Memory round update error: {e}")
 
             else:
                 self._log(f"⚠️  Unexpected stop reason: {response.stop_reason}")
@@ -215,12 +258,17 @@ class BioAgent:
 
     # ── Internal Methods ─────────────────────────────────────────────
 
-    def _call_claude(self, model: str) -> anthropic.types.Message:
+    def _call_claude(self, model: str, memory_context: str = "") -> anthropic.types.Message:
         """Make an API call to Claude with tools."""
+        # Build system prompt with optional memory context
+        system_prompt = SYSTEM_PROMPT
+        if memory_context:
+            system_prompt = f"{SYSTEM_PROMPT}\n\n{memory_context}"
+
         kwargs = {
             "model": model,
             "max_tokens": self.config.max_tokens,
-            "system": SYSTEM_PROMPT,
+            "system": system_prompt,
             "tools": get_tools(),
             "messages": self.messages,
         }
@@ -250,6 +298,13 @@ class BioAgent:
 
                 if self.config.verbose:
                     self._log(f"   Result: {result[:300]}{'...' if len(result) > 300 else ''}")
+
+                # Update memory with tool result (skip memory tools themselves)
+                if self.memory and not tool_name.startswith("memory_"):
+                    try:
+                        self.memory.on_tool_result(tool_name, tool_input, result)
+                    except Exception as e:
+                        self._log(f"⚠️  Memory update error: {e}")
 
                 tool_results.append({
                     "type": "tool_result",
@@ -468,6 +523,50 @@ class BioAgent:
                 status = self.workflows.check_engines()
                 return format_engine_status(status)
 
+            # ── Memory System Tools ───────────────────────────────────────
+            elif name == "memory_search":
+                if not self.memory:
+                    return "Memory system not available"
+                return self.memory.search_memory(
+                    query=input_data["query"],
+                    max_results=input_data.get("max_results", 5),
+                )
+
+            elif name == "memory_save_artifact":
+                if not self.memory:
+                    return "Memory system not available"
+                return self.memory.save_artifact(
+                    name=input_data["name"],
+                    content=input_data["content"],
+                    artifact_type=input_data.get("artifact_type", "analysis_result"),
+                    description=input_data["description"],
+                    tags=input_data.get("tags"),
+                )
+
+            elif name == "memory_list_artifacts":
+                if not self.memory:
+                    return "Memory system not available"
+                return self.memory.list_artifacts(
+                    artifact_type=input_data.get("artifact_type"),
+                    query=input_data.get("query"),
+                )
+
+            elif name == "memory_read_artifact":
+                if not self.memory:
+                    return "Memory system not available"
+                return self.memory.read_artifact(
+                    artifact_id=input_data["artifact_id"],
+                )
+
+            elif name == "memory_get_entities":
+                if not self.memory:
+                    return "Memory system not available"
+                return self.memory.get_entities(
+                    query=input_data.get("query"),
+                    entity_type=input_data.get("entity_type"),
+                    include_relationships=input_data.get("include_relationships", False),
+                )
+
             else:
                 return f"Unknown tool: {name}"
 
@@ -498,6 +597,8 @@ class BioAgent:
             self._log(f"   Query: {json.dumps(tool_input, indent=2)[:300]}")
         elif tool_name.startswith("workflow_"):
             self._log(f"   Workflow: {json.dumps(tool_input, indent=2)[:300]}")
+        elif tool_name.startswith("memory_"):
+            self._log(f"   Memory: {json.dumps(tool_input, indent=2)[:300]}")
         else:
             self._log(f"   Input: {json.dumps(tool_input)[:300]}")
 
@@ -583,6 +684,9 @@ class BioAgent:
             "model": self.config.model,
             "messages": self.messages,
         }
+        # Include memory session ID if available
+        if self.memory:
+            session["memory_session_id"] = self.memory.session_id
         with open(path, "w") as f:
             json.dump(session, f, indent=2, default=str)
         self._log(f"💾 Session saved to {path}")
@@ -592,4 +696,13 @@ class BioAgent:
         with open(path) as f:
             session = json.load(f)
         self.messages = session["messages"]
+        # Restore memory session ID if available
+        if self.memory and "memory_session_id" in session:
+            self.memory.session_id = session["memory_session_id"]
         self._log(f"📂 Session loaded from {path} ({len(self.messages)} messages)")
+
+    def get_memory_stats(self) -> dict | None:
+        """Get memory system statistics."""
+        if not self.memory:
+            return None
+        return self.memory.get_stats()

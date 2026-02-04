@@ -49,6 +49,14 @@ class Config:
     auto_save_results: bool = True  # Automatically save query results to files
     results_dir: str = "results"  # Subdirectory for auto-saved results
 
+    # ── Memory System ─────────────────────────────────────────────────
+    enable_memory: bool = True  # Master toggle for memory subsystem
+    enable_rag: bool = True  # Enable RAG vector store for semantic search
+    enable_summaries: bool = True  # Enable automatic session summarization
+    enable_knowledge_graph: bool = True  # Enable biological entity tracking
+    enable_artifacts: bool = True  # Enable artifact storage
+    summary_after_rounds: int = 5  # Summarize conversation every N rounds
+
     @classmethod
     def from_env(cls) -> "Config":
         """Load configuration from environment variables."""
@@ -70,6 +78,13 @@ class Config:
             enable_extended_thinking=os.getenv("BIOAGENT_EXTENDED_THINKING", "false").lower() == "true",
             auto_save_results=os.getenv("BIOAGENT_AUTO_SAVE", "true").lower() == "true",
             results_dir=os.getenv("BIOAGENT_RESULTS_DIR", "results"),
+            # Memory system
+            enable_memory=os.getenv("BIOAGENT_ENABLE_MEMORY", "true").lower() == "true",
+            enable_rag=os.getenv("BIOAGENT_ENABLE_RAG", "true").lower() == "true",
+            enable_summaries=os.getenv("BIOAGENT_ENABLE_SUMMARIES", "true").lower() == "true",
+            enable_knowledge_graph=os.getenv("BIOAGENT_ENABLE_KG", "true").lower() == "true",
+            enable_artifacts=os.getenv("BIOAGENT_ENABLE_ARTIFACTS", "true").lower() == "true",
+            summary_after_rounds=int(os.getenv("BIOAGENT_SUMMARY_ROUNDS", "5")),
         )
 
     def validate(self) -> list[str]:

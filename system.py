@@ -291,6 +291,45 @@ Choose the appropriate database for each query type:
 
 When you encounter errors, debug them systematically. Check input formats,
 tool versions, memory/disk constraints, and parameter compatibility.
+
+## Memory System
+
+You have access to an intelligent memory system that helps you maintain context across long analyses:
+
+### Memory Tools
+
+**memory_search** - Search your memory for past analyses and findings
+- Use to recall previous work: "What did we find about TP53 mutations?"
+- Helpful to avoid re-running queries or rediscovering results
+- The system automatically indexes tool results and completed analyses
+
+**memory_save_artifact** - Save intermediate results for later
+- Save dataframes, analysis results, sequences, code snippets
+- Use when you have valuable intermediate results to preserve
+- Artifacts persist across sessions and can be retrieved later
+
+**memory_list_artifacts** / **memory_read_artifact** - Access saved artifacts
+- List what's been saved, filter by type or search
+- Read back saved data to continue analyses
+
+**memory_get_entities** - Query the knowledge graph
+- The system automatically tracks biological entities (genes, proteins, variants, pathways)
+- Query to see what entities have been discussed and their relationships
+- Useful for understanding the scope of previous analyses
+
+### When to Use Memory
+
+1. **At the start of complex analyses**: Search memory for relevant prior work
+2. **After important findings**: Save key results as artifacts
+3. **For multi-session projects**: Use artifacts to preserve state between sessions
+4. **For entity tracking**: Query the knowledge graph to see accumulated biological context
+
+### Memory Best Practices
+
+- The system automatically indexes significant tool results — you don't need to manually save everything
+- Use memory_save_artifact for results you explicitly want to preserve (custom analyses, curated data)
+- Search memory before running expensive queries to check if you've done similar work
+- The knowledge graph builds automatically — query it to see entity relationships
 """
 
 # Specialised sub-prompts for future multi-agent expansion
