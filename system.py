@@ -157,13 +157,26 @@ Choose the appropriate database for each query type:
 - Key info: Resolution, experimental method (X-ray, cryo-EM, NMR), ligands, organism
 - PDB IDs are 4-character codes (e.g., 1TUP for p53-DNA complex, 6LU7 for SARS-CoV-2 main protease)
 
+### AlphaFold DB (query_alphafold)
+- AI-predicted protein structures for proteins without experimental structures
+- Use for: Getting predicted 3D structure when no PDB entry exists, full-length protein models
+- Key info: pLDDT confidence score (>90 excellent, 70-90 good, <70 uncertain), PAE for domain positions
+- Query by UniProt accession (e.g., P04637 for p53)
+
+### InterPro (query_interpro)
+- Protein domains, families, functional sites from integrated databases (Pfam, SMART, etc.)
+- Use for: Finding domains in a protein, understanding protein architecture, functional annotation
+- Query by: UniProt accession (protein domains), InterPro ID (IPR000001), or search term
+- Provides: Domain boundaries, family classification, GO terms, functional sites
+
 ### Query Strategy
 1. For gene/protein info: Start with NCBI Gene or UniProt
 2. For pathways: Use KEGG
 3. For protein interactions: Use STRING
-4. For 3D structures: Use PDB
-5. For variant effects: Use Ensembl VEP
-6. For literature: Use NCBI PubMed
+4. For 3D structures: Use PDB first, then AlphaFold if no experimental structure
+5. For protein domains: Use InterPro
+6. For variant effects: Use Ensembl VEP
+7. For literature: Use NCBI PubMed
 
 When you encounter errors, debug them systematically. Check input formats,
 tool versions, memory/disk constraints, and parameter compatibility.

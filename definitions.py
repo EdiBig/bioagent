@@ -414,6 +414,66 @@ TOOLS = [
             },
             "required": ["query"]
         }
+    },
+    {
+        "name": "query_alphafold",
+        "description": (
+            "Query AlphaFold Database for AI-predicted protein structures. "
+            "Use when no experimental structure exists in PDB, or for full-length proteins. "
+            "AlphaFold provides: "
+            "- Predicted 3D structures for most known proteins "
+            "- Confidence scores (pLDDT) indicating prediction quality "
+            "- Predicted Aligned Error (PAE) for domain arrangement confidence "
+            "- Downloadable structure files (PDB, mmCIF)"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "UniProt accession (e.g., 'P04637' for p53, 'P00533' for EGFR)"
+                },
+                "operation": {
+                    "type": "string",
+                    "description": "Operation type: prediction (full details), pae (confidence/error info), summary (brief)",
+                    "enum": ["prediction", "pae", "summary"],
+                    "default": "prediction"
+                }
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "query_interpro",
+        "description": (
+            "Query InterPro for protein domains, families, and functional sites. "
+            "InterPro integrates signatures from multiple databases (Pfam, SMART, etc.). Use for: "
+            "- Finding all domains in a protein by UniProt accession "
+            "- Looking up domain/family details by InterPro ID (e.g., IPR000001) "
+            "- Searching for domain families by name or function "
+            "- Getting functional site annotations (active sites, binding sites)"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "UniProt accession (for protein), InterPro ID (for entry), or search term"
+                },
+                "operation": {
+                    "type": "string",
+                    "description": "Operation type: protein (domains for UniProt ID), entry (InterPro details), search (find entries)",
+                    "enum": ["protein", "entry", "search"],
+                    "default": "protein"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum results for search (default: 20)",
+                    "default": 20
+                }
+            },
+            "required": ["query"]
+        }
     }
 ]
 

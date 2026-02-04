@@ -25,6 +25,8 @@ from uniprot import UniProtClient
 from kegg import KEGGClient
 from string_db import STRINGClient
 from pdb import PDBClient
+from alphafold import AlphaFoldClient
+from interpro import InterProClient
 from file_manager import FileManager
 
 
@@ -68,6 +70,8 @@ class BioAgent:
         self.kegg = KEGGClient()
         self.string = STRINGClient()
         self.pdb = PDBClient()
+        self.alphafold = AlphaFoldClient()
+        self.interpro = InterProClient()
         self.files = FileManager(workspace_dir=self.config.workspace_dir)
 
         # Conversation history
@@ -304,6 +308,21 @@ class BioAgent:
                 )
                 return result.to_string()
 
+            elif name == "query_alphafold":
+                result = self.alphafold.query(
+                    query=input_data["query"],
+                    operation=input_data.get("operation", "prediction"),
+                )
+                return result.to_string()
+
+            elif name == "query_interpro":
+                result = self.interpro.query(
+                    query=input_data["query"],
+                    operation=input_data.get("operation", "protein"),
+                    limit=input_data.get("limit", 20),
+                )
+                return result.to_string()
+
             elif name == "read_file":
                 result = self.files.read_file(
                     path=input_data["path"],
@@ -362,7 +381,7 @@ class BioAgent:
             self._log(f"   Code:\n   {preview}")
         elif tool_name == "execute_bash":
             self._log(f"   Command: {tool_input.get('command', '')}")
-        elif tool_name in ("query_ncbi", "query_ensembl", "query_uniprot", "query_kegg", "query_string", "query_pdb"):
+        elif tool_name in ("query_ncbi", "query_ensembl", "query_uniprot", "query_kegg", "query_string", "query_pdb", "query_alphafold", "query_interpro"):
             self._log(f"   Query: {json.dumps(tool_input, indent=2)[:300]}")
         else:
             self._log(f"   Input: {json.dumps(tool_input)[:300]}")
