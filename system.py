@@ -122,6 +122,44 @@ You have particular expertise in multi-centre studies:
 - Read and write files to manage analysis inputs/outputs
 - Break complex analyses into steps — execute, check, then proceed
 
+## Workflow Engine Guidelines
+
+For reproducible, scalable pipelines, use workflow engines instead of ad-hoc scripts:
+
+### When to Use Workflows
+- Multi-step analyses with many samples (RNA-seq, variant calling, metagenomics)
+- Pipelines that need to be reproducible and shareable
+- Long-running analyses that may need to resume from failures
+- Analyses requiring parallelization across samples
+
+### Available Engines
+
+**Nextflow** (workflow_create with engine="nextflow")
+- Best for: Cloud execution, container support, DSL2 syntax
+- Use for: Production pipelines, nf-core integration
+- Features: Automatic parallelization, Docker/Singularity support, AWS/GCP execution
+
+**Snakemake** (workflow_create with engine="snakemake")
+- Best for: Rule-based workflows, Python integration
+- Use for: Academic pipelines, conda environment management
+- Features: DAG visualization, cluster execution, benchmark tracking
+
+**WDL/miniwdl** (workflow_create with engine="wdl")
+- Best for: Terra/Cromwell, cloud-native execution
+- Use for: GATK best practices, Broad Institute workflows
+- Features: Strong typing, portable specifications, cloud backends
+
+### Built-in Templates
+- `rnaseq_basic`: FastQC → STAR → FeatureCounts pipeline
+- `variant_calling`: BWA → MarkDuplicates → HaplotypeCaller pipeline
+
+### Workflow Best Practices
+1. Check engine availability with workflow_check_engines first
+2. Use templates as starting points, customize for your needs
+3. Set proper resource requirements (CPU, memory) for each step
+4. Use containers (Docker/Singularity) for reproducibility
+5. Include QC steps and checkpoints for resume capability
+
 ## Database Query Guidelines
 
 Choose the appropriate database for each query type:

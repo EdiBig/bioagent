@@ -575,6 +575,159 @@ TOOLS = [
             },
             "required": ["query"]
         }
+    },
+    # ── Workflow Engine Tools ─────────────────────────────────────────
+    {
+        "name": "workflow_create",
+        "description": (
+            "Create a reproducible bioinformatics workflow using Nextflow, Snakemake, or WDL. "
+            "Workflows enable: "
+            "- Reproducible end-to-end pipelines with automatic parallelization "
+            "- Resume failed runs from checkpoints "
+            "- Provenance tracking and logging "
+            "- Scalable execution (local or cloud) "
+            "Built-in templates: rnaseq_basic, variant_calling"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Workflow name (e.g., 'my_rnaseq_pipeline')"
+                },
+                "engine": {
+                    "type": "string",
+                    "description": "Workflow engine to use",
+                    "enum": ["nextflow", "snakemake", "wdl"]
+                },
+                "definition": {
+                    "type": "string",
+                    "description": "Custom workflow definition code (Nextflow DSL2, Snakefile rules, or WDL)"
+                },
+                "template": {
+                    "type": "string",
+                    "description": "Use built-in template instead of custom definition",
+                    "enum": ["rnaseq_basic", "variant_calling"]
+                },
+                "params": {
+                    "type": "object",
+                    "description": "Default parameters for the workflow (e.g., input paths, reference files)"
+                }
+            },
+            "required": ["name", "engine"]
+        }
+    },
+    {
+        "name": "workflow_run",
+        "description": (
+            "Execute a bioinformatics workflow using Nextflow, Snakemake, or WDL. "
+            "Features: "
+            "- Automatic parallelization of independent tasks "
+            "- Resume from last checkpoint if workflow failed "
+            "- Progress tracking and logging "
+            "- Output file management"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "workflow_path": {
+                    "type": "string",
+                    "description": "Path to workflow file (main.nf, Snakefile, main.wdl) or workflow directory"
+                },
+                "engine": {
+                    "type": "string",
+                    "description": "Workflow engine (auto-detected if not specified)",
+                    "enum": ["nextflow", "snakemake", "wdl"]
+                },
+                "params": {
+                    "type": "object",
+                    "description": "Runtime parameters to override defaults"
+                },
+                "resume": {
+                    "type": "boolean",
+                    "description": "Resume from last checkpoint (default: false)",
+                    "default": False
+                }
+            },
+            "required": ["workflow_path"]
+        }
+    },
+    {
+        "name": "workflow_status",
+        "description": (
+            "Get the status of a workflow execution. "
+            "Returns: running, completed, failed, or pending status with any available logs."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "workflow_id": {
+                    "type": "string",
+                    "description": "Workflow ID (returned from workflow_create)"
+                },
+                "engine": {
+                    "type": "string",
+                    "description": "Workflow engine used",
+                    "enum": ["nextflow", "snakemake", "wdl"]
+                }
+            },
+            "required": ["workflow_id", "engine"]
+        }
+    },
+    {
+        "name": "workflow_outputs",
+        "description": (
+            "Get outputs from a completed workflow. "
+            "Returns list of output files and their locations, plus any workflow-level outputs."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "workflow_id": {
+                    "type": "string",
+                    "description": "Workflow ID"
+                },
+                "engine": {
+                    "type": "string",
+                    "description": "Workflow engine used",
+                    "enum": ["nextflow", "snakemake", "wdl"]
+                }
+            },
+            "required": ["workflow_id", "engine"]
+        }
+    },
+    {
+        "name": "workflow_list",
+        "description": (
+            "List all workflows in the workspace, optionally filtered by engine. "
+            "Also lists available templates for creating new workflows."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "engine": {
+                    "type": "string",
+                    "description": "Filter by workflow engine (optional)",
+                    "enum": ["nextflow", "snakemake", "wdl"]
+                },
+                "list_templates": {
+                    "type": "boolean",
+                    "description": "Also list available templates (default: true)",
+                    "default": True
+                }
+            }
+        }
+    },
+    {
+        "name": "workflow_check_engines",
+        "description": (
+            "Check which workflow engines are installed and available. "
+            "Returns installation status for Nextflow, Snakemake, and WDL/miniwdl."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {}
+        }
     }
 ]
 

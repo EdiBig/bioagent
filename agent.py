@@ -31,6 +31,7 @@ from reactome import ReactomeClient
 from gene_ontology import GeneOntologyClient
 from gnomad import GnomADClient
 from file_manager import FileManager
+from workflows import WorkflowManager, format_engine_status
 
 
 class BioAgent:
@@ -79,6 +80,7 @@ class BioAgent:
         self.go = GeneOntologyClient()
         self.gnomad = GnomADClient()
         self.files = FileManager(workspace_dir=self.config.workspace_dir)
+        self.workflows = WorkflowManager(workspace_dir=self.config.workspace_dir)
 
         # Conversation history
         self.messages: list[dict] = []
@@ -386,6 +388,63 @@ class BioAgent:
                     "in the _execute_tool method."
                 )
 
+            # ── Workflow Engine Tools ─────────────────────────────────────
+            elif name == "workflow_create":
+                result = self.workflows.create_workflow(
+                    name=input_data["name"],
+                    engine=input_data["engine"],
+                    definition=input_data.get("definition"),
+                    template=input_data.get("template"),
+                    params=input_data.get("params"),
+                )
+                return result.to_string()
+
+            elif name == "workflow_run":
+                result = self.workflows.run_workflow(
+                    workflow_path=input_data["workflow_path"],
+                    engine=input_data.get("engine"),
+                    params=input_data.get("params"),
+                    resume=input_data.get("resume", False),
+                )
+                return result.to_string()
+
+            elif name == "workflow_status":
+                result = self.workflows.get_status(
+                    workflow_id=input_data["workflow_id"],
+                    engine=input_data["engine"],
+                )
+                return result.to_string()
+
+            elif name == "workflow_outputs":
+                result = self.workflows.get_outputs(
+                    workflow_id=input_data["workflow_id"],
+                    engine=input_data["engine"],
+                )
+                return result.to_string()
+
+            elif name == "workflow_list":
+                engine = input_data.get("engine")
+                list_templates = input_data.get("list_templates", True)
+
+                parts = []
+                workflows = self.workflows.list_workflows(engine)
+                for eng, wf_list in workflows.items():
+                    parts.append(f"\n{eng.capitalize()} Workflows ({len(wf_list)}):")
+                    for wf in wf_list:
+                        parts.append(f"  - {wf['id']}: {wf['path']}")
+
+                if list_templates:
+                    templates = self.workflows.list_templates(engine)
+                    parts.append("\nAvailable Templates:")
+                    for eng, tpl_list in templates.items():
+                        parts.append(f"  {eng}: {', '.join(tpl_list)}")
+
+                return "\n".join(parts) if parts else "No workflows found."
+
+            elif name == "workflow_check_engines":
+                status = self.workflows.check_engines()
+                return format_engine_status(status)
+
             else:
                 return f"Unknown tool: {name}"
 
@@ -414,6 +473,8 @@ class BioAgent:
             self._log(f"   Command: {tool_input.get('command', '')}")
         elif tool_name in ("query_ncbi", "query_ensembl", "query_uniprot", "query_kegg", "query_string", "query_pdb", "query_alphafold", "query_interpro", "query_reactome", "query_go", "query_gnomad"):
             self._log(f"   Query: {json.dumps(tool_input, indent=2)[:300]}")
+        elif tool_name.startswith("workflow_"):
+            self._log(f"   Workflow: {json.dumps(tool_input, indent=2)[:300]}")
         else:
             self._log(f"   Input: {json.dumps(tool_input)[:300]}")
 
