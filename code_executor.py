@@ -155,7 +155,7 @@ class CodeExecutor:
                 text=True,
                 timeout=timeout,
                 cwd=cwd,
-                env={**os.environ, "PYTHONUNBUFFERED": "1"},
+                env={**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"},
             )
             return ExecutionResult(
                 stdout=self._truncate(result.stdout),
