@@ -69,12 +69,14 @@ class CodeExecutor:
             delete=False, prefix="bioagent_py_"
         ) as f:
             # Wrap code to handle matplotlib non-interactively
+            # Use repr() to properly escape Windows paths with backslashes
+            workspace_path = repr(str(self.workspace_dir))
             wrapped_code = (
                 "import matplotlib\n"
                 "matplotlib.use('Agg')\n"
                 "import warnings\n"
                 "warnings.filterwarnings('ignore')\n"
-                f"import os\nos.chdir('{self.workspace_dir}')\n\n"
+                f"import os\nos.chdir({workspace_path})\n\n"
                 f"{code}"
             )
             f.write(wrapped_code)
@@ -101,8 +103,10 @@ class CodeExecutor:
             mode="w", suffix=".R", dir=self.workspace_dir,
             delete=False, prefix="bioagent_r_"
         ) as f:
+            # Use forward slashes for R on Windows (R accepts both)
+            workspace_path = str(self.workspace_dir).replace("\\", "/")
             wrapped_code = (
-                f'setwd("{self.workspace_dir}")\n'
+                f'setwd("{workspace_path}")\n'
                 "options(warn = 1)\n\n"
                 f"{code}"
             )
