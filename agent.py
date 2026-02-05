@@ -46,6 +46,7 @@ from ml import (
     discover_biomarkers,
 )
 from data_input import IngestHandler, get_ingest_tools
+from workspace import AnalysisTracker, ProjectManager
 
 
 class BioAgent:
@@ -122,6 +123,26 @@ class BioAgent:
 
         # Session log
         self._session_log: list[dict] = []
+
+        # Initialize workspace tracking system
+        self.tracker = None
+        self.project_manager = None
+        self._current_analysis_id: str | None = None
+
+        if self.config.enable_analysis_tracking:
+            try:
+                self.tracker = AnalysisTracker(
+                    workspace_dir=self.config.workspace_dir,
+                    id_prefix=self.config.analysis_id_prefix,
+                )
+                self.project_manager = ProjectManager(
+                    workspace_dir=self.config.workspace_dir,
+                )
+                self._log(f"📊 Analysis tracking system initialized")
+            except Exception as e:
+                self._log(f"⚠️  Analysis tracking initialization failed: {e}")
+                self.tracker = None
+                self.project_manager = None
 
         # Initialize multi-agent coordinator if enabled
         self.coordinator = None
@@ -332,6 +353,14 @@ class BioAgent:
             "list_ingested_files": lambda args: self.ingest_handler.handle("list_ingested_files", args),
             "get_file_profile": lambda args: self.ingest_handler.handle("get_file_profile", args),
             "validate_dataset": lambda args: self.ingest_handler.handle("validate_dataset", args),
+
+            # Workspace & Analysis Tracking tools
+            "start_analysis": lambda args: self._handle_start_analysis(args),
+            "complete_analysis": lambda args: self._handle_complete_analysis(args),
+            "list_analyses": lambda args: self._handle_list_analyses(args),
+            "get_analysis": lambda args: self._handle_get_analysis(args),
+            "manage_project": lambda args: self._handle_manage_project(args),
+            "tag_file": lambda args: self._handle_tag_file(args),
         }
 
     def _handle_workflow_list(self, args: dict) -> str:
@@ -948,7 +977,40 @@ class BioAgent:
 
             # ── Data Ingestion Tools ───────────────────────────────────────
             elif name in self.ingest_handler.handled_tools:
-                return self.ingest_handler.handle(name, input_data)
+                result = self.ingest_handler.handle(name, input_data)
+                # Auto-register ingested files to current analysis
+                if self._current_analysis_id and self.tracker and name == "ingest_file":
+                    try:
+                        source = input_data.get("source", "")
+                        self.tracker.register_file(
+                            analysis_id=self._current_analysis_id,
+                            file_path=source,
+                            file_type="input",
+                            category="data",
+                            source_tool=name,
+                        )
+                    except Exception:
+                        pass  # Don't fail if registration fails
+                return result
+
+            # ── Workspace & Analysis Tracking Tools ─────────────────────────
+            elif name == "start_analysis":
+                return self._handle_start_analysis(input_data)
+
+            elif name == "complete_analysis":
+                return self._handle_complete_analysis(input_data)
+
+            elif name == "list_analyses":
+                return self._handle_list_analyses(input_data)
+
+            elif name == "get_analysis":
+                return self._handle_get_analysis(input_data)
+
+            elif name == "manage_project":
+                return self._handle_manage_project(input_data)
+
+            elif name == "tag_file":
+                return self._handle_tag_file(input_data)
 
             else:
                 return f"Unknown tool: {name}"
@@ -999,8 +1061,16 @@ class BioAgent:
         if not self.config.auto_save_results:
             return None
 
-        # Create results directory
-        results_dir = Path(self.config.workspace_dir) / self.config.results_dir
+        # Use analysis-specific output path if tracking is active
+        if self._current_analysis_id and self.tracker:
+            analysis_path = self.tracker.get_analysis_path(self._current_analysis_id)
+            if analysis_path:
+                results_dir = analysis_path / "outputs"
+            else:
+                results_dir = Path(self.config.workspace_dir) / self.config.results_dir
+        else:
+            results_dir = Path(self.config.workspace_dir) / self.config.results_dir
+
         results_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate filename from query (sanitized)
@@ -1010,7 +1080,12 @@ class BioAgent:
         query_slug = "_".join(query_words.split()[:5])  # First 5 words
         if not query_slug:
             query_slug = "query"
-        filename = f"{timestamp}_{query_slug}.md"
+
+        # Include analysis ID in filename if available
+        if self._current_analysis_id:
+            filename = f"{self._current_analysis_id}_{query_slug}.md"
+        else:
+            filename = f"{timestamp}_{query_slug}.md"
         filepath = results_dir / filename
 
         # Build the result document
@@ -1045,6 +1120,21 @@ class BioAgent:
         try:
             filepath.write_text(content, encoding="utf-8")
             self._log(f"💾 Results auto-saved to: {filepath}")
+
+            # Register to analysis tracking if active
+            if self._current_analysis_id and self.tracker:
+                try:
+                    self.tracker.register_file(
+                        analysis_id=self._current_analysis_id,
+                        file_path=str(filepath),
+                        file_type="output",
+                        category="result",
+                        description=f"Analysis result for: {query[:100]}",
+                        source_tool="agent_response",
+                    )
+                except Exception:
+                    pass  # Don't fail if registration fails
+
             return str(filepath)
         except Exception as e:
             self._log(f"⚠️  Failed to auto-save results: {e}")
@@ -1524,6 +1614,353 @@ class BioAgent:
 
         except Exception as e:
             return f"Failed to estimate cost: {e}"
+
+    # ── Workspace & Analysis Tracking Methods ─────────────────────────
+
+    def _handle_start_analysis(self, input_data: dict) -> str:
+        """Start a new analysis session."""
+        if not self.tracker:
+            return "Analysis tracking is not enabled. Set BIOAGENT_ENABLE_TRACKING=true"
+
+        try:
+            analysis_id = self.tracker.start_analysis(
+                title=input_data["title"],
+                description=input_data.get("description", ""),
+                analysis_type=input_data.get("analysis_type", "general"),
+                project_id=input_data.get("project_id"),
+                tags=input_data.get("tags"),
+                query=self.messages[-1]["content"] if self.messages else "",
+            )
+
+            # Set as current analysis
+            self._current_analysis_id = analysis_id
+
+            # Link to project if specified
+            if input_data.get("project_id") and self.project_manager:
+                self.project_manager.add_analysis_to_project(
+                    input_data["project_id"],
+                    analysis_id,
+                )
+
+            workspace_path = self.tracker.get_analysis_path(analysis_id)
+
+            return (
+                f"Analysis session started!\n\n"
+                f"  Analysis ID: {analysis_id}\n"
+                f"  Title: {input_data['title']}\n"
+                f"  Type: {input_data.get('analysis_type', 'general')}\n"
+                f"  Workspace: {workspace_path}\n\n"
+                f"All outputs will be tracked under this analysis ID."
+            )
+
+        except Exception as e:
+            return f"Failed to start analysis: {e}"
+
+    def _handle_complete_analysis(self, input_data: dict) -> str:
+        """Complete an analysis session."""
+        if not self.tracker:
+            return "Analysis tracking is not enabled."
+
+        try:
+            analysis_id = input_data["analysis_id"]
+            success = self.tracker.complete_analysis(
+                analysis_id=analysis_id,
+                summary=input_data.get("summary", ""),
+                status=input_data.get("status", "completed"),
+            )
+
+            if not success:
+                return f"Analysis not found: {analysis_id}"
+
+            # Clear current analysis if it matches
+            if self._current_analysis_id == analysis_id:
+                self._current_analysis_id = None
+
+            analysis = self.tracker.get_analysis(analysis_id)
+            if analysis:
+                return (
+                    f"Analysis completed!\n\n"
+                    f"  Analysis ID: {analysis_id}\n"
+                    f"  Status: {analysis.status.value}\n"
+                    f"  Tools used: {', '.join(analysis.tools_used) if analysis.tools_used else 'None'}\n"
+                    f"  Inputs: {len(analysis.input_ids)} files\n"
+                    f"  Outputs: {len(analysis.output_ids)} files\n"
+                    f"  Workspace: {analysis.workspace_path}"
+                )
+
+            return f"Analysis {analysis_id} marked as {input_data.get('status', 'completed')}."
+
+        except Exception as e:
+            return f"Failed to complete analysis: {e}"
+
+    def _handle_list_analyses(self, input_data: dict) -> str:
+        """List analyses with filtering."""
+        if not self.tracker:
+            return "Analysis tracking is not enabled."
+
+        try:
+            analyses = self.tracker.list_analyses(
+                project_id=input_data.get("project_id"),
+                analysis_type=input_data.get("analysis_type"),
+                status=input_data.get("status"),
+                tags=input_data.get("tags"),
+                date_from=input_data.get("date_from"),
+                date_to=input_data.get("date_to"),
+                limit=input_data.get("limit", 20),
+            )
+
+            if not analyses:
+                return "No analyses found matching the criteria."
+
+            lines = [f"Found {len(analyses)} analyses:\n"]
+
+            for a in analyses:
+                status_icon = {
+                    "in_progress": "🔄",
+                    "completed": "✅",
+                    "failed": "❌",
+                }.get(a.status.value, "❓")
+
+                lines.append(
+                    f"  {status_icon} {a.id}: {a.title}\n"
+                    f"      Type: {a.analysis_type} | "
+                    f"Status: {a.status.value} | "
+                    f"Created: {a.created_at[:10]}"
+                )
+                if a.tags:
+                    lines.append(f"      Tags: {', '.join(a.tags)}")
+                lines.append("")
+
+            return "\n".join(lines)
+
+        except Exception as e:
+            return f"Failed to list analyses: {e}"
+
+    def _handle_get_analysis(self, input_data: dict) -> str:
+        """Get detailed analysis information."""
+        if not self.tracker:
+            return "Analysis tracking is not enabled."
+
+        try:
+            analysis_id = input_data["analysis_id"]
+            analysis = self.tracker.get_analysis(analysis_id)
+
+            if not analysis:
+                return f"Analysis not found: {analysis_id}"
+
+            lines = [
+                f"=== Analysis: {analysis_id} ===\n",
+                f"Title: {analysis.title}",
+                f"Type: {analysis.analysis_type}",
+                f"Status: {analysis.status.value}",
+                f"Created: {analysis.created_at}",
+            ]
+
+            if analysis.completed_at:
+                lines.append(f"Completed: {analysis.completed_at}")
+
+            if analysis.project_id:
+                lines.append(f"Project: {analysis.project_id}")
+
+            if analysis.description:
+                lines.append(f"\nDescription: {analysis.description}")
+
+            if analysis.query:
+                lines.append(f"\nOriginal Query: {analysis.query[:200]}{'...' if len(analysis.query) > 200 else ''}")
+
+            if analysis.tools_used:
+                lines.append(f"\nTools Used: {', '.join(analysis.tools_used)}")
+
+            if analysis.tags:
+                lines.append(f"Tags: {', '.join(analysis.tags)}")
+
+            lines.append(f"\nWorkspace: {analysis.workspace_path}")
+
+            # Include files if requested
+            if input_data.get("include_files", True):
+                input_files = self.tracker.get_analysis_files(analysis_id, file_type="input")
+                output_files = self.tracker.get_analysis_files(analysis_id, file_type="output")
+
+                if input_files:
+                    lines.append(f"\nInput Files ({len(input_files)}):")
+                    for f in input_files[:10]:
+                        lines.append(f"  - {f.file_name} ({f.format})")
+                    if len(input_files) > 10:
+                        lines.append(f"  ... and {len(input_files) - 10} more")
+
+                if output_files:
+                    lines.append(f"\nOutput Files ({len(output_files)}):")
+                    for f in output_files[:10]:
+                        lines.append(f"  - {f.file_name} ({f.category.value}, {f.format})")
+                    if len(output_files) > 10:
+                        lines.append(f"  ... and {len(output_files) - 10} more")
+
+            if analysis.summary:
+                lines.append(f"\nSummary: {analysis.summary}")
+
+            return "\n".join(lines)
+
+        except Exception as e:
+            return f"Failed to get analysis: {e}"
+
+    def _handle_manage_project(self, input_data: dict) -> str:
+        """Handle project management operations."""
+        if not self.project_manager:
+            return "Project management is not enabled."
+
+        try:
+            action = input_data["action"]
+
+            if action == "create":
+                if not input_data.get("name"):
+                    return "Project name is required for create action."
+
+                project_id = self.project_manager.create_project(
+                    name=input_data["name"],
+                    description=input_data.get("description", ""),
+                    tags=input_data.get("tags"),
+                    metadata=input_data.get("metadata"),
+                )
+
+                project = self.project_manager.get_project(project_id)
+                return (
+                    f"Project created!\n\n"
+                    f"  Project ID: {project_id}\n"
+                    f"  Name: {input_data['name']}\n"
+                    f"  Workspace: {project.workspace_path if project else 'N/A'}\n\n"
+                    f"Use this project_id when starting analyses to group them together."
+                )
+
+            elif action == "update":
+                project_id = input_data.get("project_id")
+                if not project_id:
+                    return "Project ID is required for update action."
+
+                success = self.project_manager.update_project(
+                    project_id=project_id,
+                    name=input_data.get("name"),
+                    description=input_data.get("description"),
+                    tags=input_data.get("tags"),
+                    metadata=input_data.get("metadata"),
+                )
+
+                if success:
+                    return f"Project {project_id} updated successfully."
+                return f"Project not found: {project_id}"
+
+            elif action == "list":
+                projects = self.project_manager.list_projects(
+                    tags=input_data.get("tags"),
+                )
+
+                if not projects:
+                    return "No projects found."
+
+                lines = [f"Found {len(projects)} projects:\n"]
+                for p in projects:
+                    lines.append(f"  📁 {p.id}: {p.name}")
+                    lines.append(f"      Analyses: {len(p.analysis_ids)} | Created: {p.created_at[:10]}")
+                    if p.tags:
+                        lines.append(f"      Tags: {', '.join(p.tags)}")
+                    lines.append("")
+
+                return "\n".join(lines)
+
+            elif action == "get":
+                project_id = input_data.get("project_id")
+                if not project_id:
+                    return "Project ID is required for get action."
+
+                project = self.project_manager.get_project(project_id)
+                if not project:
+                    return f"Project not found: {project_id}"
+
+                lines = [
+                    f"=== Project: {project_id} ===\n",
+                    f"Name: {project.name}",
+                    f"Created: {project.created_at}",
+                    f"Updated: {project.updated_at}",
+                ]
+
+                if project.description:
+                    lines.append(f"\nDescription: {project.description}")
+
+                if project.tags:
+                    lines.append(f"\nTags: {', '.join(project.tags)}")
+
+                if project.metadata:
+                    lines.append(f"\nMetadata:")
+                    for k, v in project.metadata.items():
+                        lines.append(f"  {k}: {v}")
+
+                lines.append(f"\nWorkspace: {project.workspace_path}")
+                lines.append(f"\nAnalyses ({len(project.analysis_ids)}):")
+                for aid in project.analysis_ids[:10]:
+                    analysis = self.tracker.get_analysis(aid) if self.tracker else None
+                    if analysis:
+                        lines.append(f"  - {aid}: {analysis.title} ({analysis.status.value})")
+                    else:
+                        lines.append(f"  - {aid}")
+
+                if len(project.analysis_ids) > 10:
+                    lines.append(f"  ... and {len(project.analysis_ids) - 10} more")
+
+                return "\n".join(lines)
+
+            else:
+                return f"Unknown action: {action}. Use 'create', 'update', 'list', or 'get'."
+
+        except Exception as e:
+            return f"Project operation failed: {e}"
+
+    def _handle_tag_file(self, input_data: dict) -> str:
+        """Register and tag a file within an analysis."""
+        if not self.tracker:
+            return "Analysis tracking is not enabled."
+
+        try:
+            file_id = self.tracker.register_file(
+                analysis_id=input_data["analysis_id"],
+                file_path=input_data["file_path"],
+                file_type=input_data.get("file_type", "output"),
+                category=input_data.get("category", "data"),
+                description=input_data.get("description", ""),
+                tags=input_data.get("tags"),
+            )
+
+            if not file_id:
+                return f"Failed to register file. Analysis may not exist: {input_data['analysis_id']}"
+
+            return (
+                f"File registered successfully!\n\n"
+                f"  File ID: {file_id}\n"
+                f"  Analysis: {input_data['analysis_id']}\n"
+                f"  Path: {input_data['file_path']}\n"
+                f"  Type: {input_data.get('file_type', 'output')}\n"
+                f"  Category: {input_data.get('category', 'data')}"
+            )
+
+        except Exception as e:
+            return f"Failed to tag file: {e}"
+
+    def _auto_register_output(
+        self,
+        file_path: str,
+        category: str = "result",
+        source_tool: str | None = None,
+    ) -> None:
+        """Automatically register an output file to the current analysis."""
+        if self._current_analysis_id and self.tracker:
+            try:
+                self.tracker.register_file(
+                    analysis_id=self._current_analysis_id,
+                    file_path=file_path,
+                    file_type="output",
+                    category=category,
+                    source_tool=source_tool,
+                )
+            except Exception:
+                pass  # Don't fail the main operation
 
     # ── Utility Methods ──────────────────────────────────────────────
 

@@ -1501,6 +1501,222 @@ TOOLS = [
             "required": ["file_labels"],
         },
     },
+
+    # ── Workspace & Analysis Tracking Tools ───────────────────────────
+    {
+        "name": "start_analysis",
+        "description": (
+            "Start a new analysis session with tracking. Creates a unique Analysis ID "
+            "(e.g., BIO-20250205-001) that links all files and outputs. "
+            "Use this at the beginning of a new analysis task to organize outputs. "
+            "The analysis session tracks: inputs, outputs, tools used, and metadata."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Human-readable title for the analysis (e.g., 'RNA-seq DE Analysis')"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Detailed description of the analysis",
+                    "default": ""
+                },
+                "analysis_type": {
+                    "type": "string",
+                    "description": "Type of analysis for categorization",
+                    "enum": ["rnaseq", "variant", "enrichment", "structure", "alignment", "singlecell", "proteomics", "general"],
+                    "default": "general"
+                },
+                "project_id": {
+                    "type": "string",
+                    "description": "Optional: Link to a parent project (use manage_project to create)"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Tags for categorization (e.g., ['cancer', 'BRCA1', 'differential-expression'])"
+                }
+            },
+            "required": ["title"]
+        }
+    },
+    {
+        "name": "complete_analysis",
+        "description": (
+            "Mark an analysis session as complete. Finalizes the analysis manifest "
+            "and updates the status. Call this when the analysis is finished."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "analysis_id": {
+                    "type": "string",
+                    "description": "The Analysis ID to complete (e.g., 'BIO-20250205-001')"
+                },
+                "summary": {
+                    "type": "string",
+                    "description": "Final summary of results and findings",
+                    "default": ""
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Final status of the analysis",
+                    "enum": ["completed", "failed"],
+                    "default": "completed"
+                }
+            },
+            "required": ["analysis_id"]
+        }
+    },
+    {
+        "name": "list_analyses",
+        "description": (
+            "List analysis sessions with optional filtering. Shows recent analyses "
+            "with their IDs, titles, types, and status."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "project_id": {
+                    "type": "string",
+                    "description": "Filter by project ID"
+                },
+                "analysis_type": {
+                    "type": "string",
+                    "description": "Filter by analysis type",
+                    "enum": ["rnaseq", "variant", "enrichment", "structure", "alignment", "singlecell", "proteomics", "general"]
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Filter by status",
+                    "enum": ["in_progress", "completed", "failed"]
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Filter by tags (any match)"
+                },
+                "date_from": {
+                    "type": "string",
+                    "description": "Filter by start date (ISO format, e.g., '2025-02-01')"
+                },
+                "date_to": {
+                    "type": "string",
+                    "description": "Filter by end date (ISO format)"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum results to return",
+                    "default": 20
+                }
+            }
+        }
+    },
+    {
+        "name": "get_analysis",
+        "description": (
+            "Get detailed information about a specific analysis session, "
+            "including all input/output files, tools used, and metadata."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "analysis_id": {
+                    "type": "string",
+                    "description": "The Analysis ID to retrieve (e.g., 'BIO-20250205-001')"
+                },
+                "include_files": {
+                    "type": "boolean",
+                    "description": "Include list of associated files",
+                    "default": True
+                }
+            },
+            "required": ["analysis_id"]
+        }
+    },
+    {
+        "name": "manage_project",
+        "description": (
+            "Create and manage projects that group related analyses. "
+            "Projects represent larger research efforts like a paper or clinical study."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "description": "Action to perform",
+                    "enum": ["create", "update", "list", "get"]
+                },
+                "project_id": {
+                    "type": "string",
+                    "description": "Project ID (required for update/get)"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Project name (for create)"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Project description"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Tags for categorization"
+                },
+                "metadata": {
+                    "type": "object",
+                    "description": "Custom metadata (e.g., PI name, institution, grant number)"
+                }
+            },
+            "required": ["action"]
+        }
+    },
+    {
+        "name": "tag_file",
+        "description": (
+            "Register and tag a file within an analysis session. "
+            "Links the file to the analysis for provenance tracking."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "Path to the file"
+                },
+                "analysis_id": {
+                    "type": "string",
+                    "description": "Analysis ID to link the file to"
+                },
+                "file_type": {
+                    "type": "string",
+                    "description": "Type of file",
+                    "enum": ["input", "output", "report", "log"],
+                    "default": "output"
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Category of file content",
+                    "enum": ["data", "figure", "table", "notebook", "script", "result", "reference", "other"],
+                    "default": "data"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Description of the file"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Tags for the file"
+                }
+            },
+            "required": ["file_path", "analysis_id"]
+        }
+    },
 ]
 
 

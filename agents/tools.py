@@ -13,7 +13,7 @@ from definitions import TOOLS
 
 # Tool subsets for each specialist type
 SPECIALIST_TOOLS: dict[str, list[str]] = {
-    # Pipeline Engineer: Code execution, file management, workflows, visualization, cloud, ML, data ingestion
+    # Pipeline Engineer: Code execution, file management, workflows, visualization, cloud, ML, data ingestion, workspace
     "pipeline_engineer": [
         "execute_python",
         "execute_r",
@@ -51,6 +51,13 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "list_ingested_files",
         "get_file_profile",
         "validate_dataset",
+        # Workspace & Analysis tracking
+        "start_analysis",
+        "complete_analysis",
+        "list_analyses",
+        "get_analysis",
+        "manage_project",
+        "tag_file",
     ],
 
     # Literature Agent: Database queries, web search, memory, data awareness
@@ -141,13 +148,16 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "predict_drug_response",
     ],
 
-    # Coordinator: Limited tools - mainly for context gathering
+    # Coordinator: Limited tools - mainly for context gathering and analysis tracking
     "coordinator": [
         "read_file",
         "list_files",
         "memory_search",
         "memory_get_entities",
         "memory_list_artifacts",
+        # Analysis tracking (read-only for context)
+        "list_analyses",
+        "get_analysis",
     ],
 }
 
@@ -234,6 +244,7 @@ def summarize_specialist_capabilities() -> dict[str, dict[str, Any]]:
         "cloud_hpc": ["cloud_submit_job", "cloud_job_status", "cloud_job_logs", "cloud_cancel_job", "cloud_list_jobs", "cloud_estimate_cost"],
         "ml_ai": ["predict_pathogenicity", "predict_structure", "predict_drug_response", "annotate_cell_types", "discover_biomarkers"],
         "data_ingestion": ["ingest_file", "ingest_batch", "ingest_directory", "list_ingested_files", "get_file_profile", "validate_dataset"],
+        "workspace_tracking": ["start_analysis", "complete_analysis", "list_analyses", "get_analysis", "manage_project", "tag_file"],
     }
 
     for specialist, tools in SPECIALIST_TOOLS.items():

@@ -65,6 +65,12 @@ class Config:
     specialist_model: str = "claude-sonnet-4-20250514"  # Model for specialists
     qc_model: str = "claude-haiku-3-5-20241022"  # Lighter model for QC reviewer
 
+    # ── Workspace & Analysis Tracking ────────────────────────────────────
+    enable_analysis_tracking: bool = True  # Master toggle for analysis tracking
+    auto_create_analysis: bool = False  # Auto-start analysis on query
+    default_project: str = ""  # Default project for new analyses
+    analysis_id_prefix: str = "BIO"  # Prefix for analysis IDs (BIO-YYYYMMDD-NNN)
+
     @classmethod
     def from_env(cls) -> "Config":
         """Load configuration from environment variables."""
@@ -100,6 +106,11 @@ class Config:
             coordinator_model=os.getenv("BIOAGENT_COORDINATOR_MODEL", "claude-sonnet-4-20250514"),
             specialist_model=os.getenv("BIOAGENT_SPECIALIST_MODEL", "claude-sonnet-4-20250514"),
             qc_model=os.getenv("BIOAGENT_QC_MODEL", "claude-haiku-3-5-20241022"),
+            # Workspace & Analysis Tracking
+            enable_analysis_tracking=os.getenv("BIOAGENT_ENABLE_TRACKING", "true").lower() == "true",
+            auto_create_analysis=os.getenv("BIOAGENT_AUTO_CREATE_ANALYSIS", "false").lower() == "true",
+            default_project=os.getenv("BIOAGENT_DEFAULT_PROJECT", ""),
+            analysis_id_prefix=os.getenv("BIOAGENT_ANALYSIS_PREFIX", "BIO"),
         )
 
     def validate(self) -> list[str]:
