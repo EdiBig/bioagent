@@ -21,6 +21,7 @@ class SpecialistType(Enum):
     LITERATURE_AGENT = "literature_agent"
     QC_REVIEWER = "qc_reviewer"
     DOMAIN_EXPERT = "domain_expert"
+    RESEARCH_AGENT = "research_agent"
     COORDINATOR = "coordinator"
 
 

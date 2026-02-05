@@ -83,19 +83,25 @@ A comprehensive manual for using BioAgent - your AI-powered bioinformatics assis
     - [Managing Projects](#122-managing-projects)
     - [Finding Past Work](#123-finding-past-work)
 
-13. [Multi-Agent Mode](#13-multi-agent-mode)
-    - [When to Use Multi-Agent](#131-when-to-use-multi-agent)
-    - [Understanding Specialists](#132-understanding-specialists)
+13. [Research Agent](#13-research-agent)
+    - [Literature Search](#131-literature-search)
+    - [Citation Management](#132-citation-management)
+    - [Report Generation](#133-report-generation)
+    - [Creating Presentations](#134-creating-presentations)
 
-14. [Complete Tutorials](#14-complete-tutorials)
-    - [Tutorial 1: Gene Investigation](#141-tutorial-1-gene-investigation)
-    - [Tutorial 2: RNA-seq Analysis](#142-tutorial-2-rna-seq-analysis)
-    - [Tutorial 3: Variant Interpretation](#143-tutorial-3-variant-interpretation)
-    - [Tutorial 4: Single-Cell Analysis](#144-tutorial-4-single-cell-analysis)
+14. [Multi-Agent Mode](#14-multi-agent-mode)
+    - [When to Use Multi-Agent](#141-when-to-use-multi-agent)
+    - [Understanding Specialists](#142-understanding-specialists)
 
-15. [Best Practices](#15-best-practices)
+15. [Complete Tutorials](#15-complete-tutorials)
+    - [Tutorial 1: Gene Investigation](#151-tutorial-1-gene-investigation)
+    - [Tutorial 2: RNA-seq Analysis](#152-tutorial-2-rna-seq-analysis)
+    - [Tutorial 3: Variant Interpretation](#153-tutorial-3-variant-interpretation)
+    - [Tutorial 4: Single-Cell Analysis](#154-tutorial-4-single-cell-analysis)
 
-16. [Troubleshooting](#16-troubleshooting)
+16. [Best Practices](#16-best-practices)
+
+17. [Troubleshooting](#17-troubleshooting)
 
 ---
 
@@ -253,7 +259,7 @@ Your Question
 
 ### 2.2 Tools and Capabilities
 
-BioAgent has **58 tools** across 11 categories:
+BioAgent has **72 tools** across 12 categories:
 
 | Category | Tools | What They Do |
 |----------|-------|--------------|
@@ -267,6 +273,7 @@ BioAgent has **58 tools** across 11 categories:
 | **Files** | 3 | Read, write, list files |
 | **Data Ingestion** | 6 | Auto-detect formats, profile data |
 | **Workspace Tracking** | 6 | Track analyses, manage projects |
+| **Research & Literature** | 14 | Literature search, citations, reports |
 | **Web Search** | 1 | Search documentation/papers |
 
 ### 2.3 Query Types
@@ -1758,9 +1765,166 @@ workspace/projects/
 
 ---
 
-## 13. Multi-Agent Mode
+## 13. Research Agent
 
-### 13.1 When to Use Multi-Agent
+The Research Agent is a specialized component for deep literature synthesis, citation management, and academic output generation.
+
+### 13.1 Literature Search
+
+Search across multiple academic databases simultaneously.
+
+#### Multi-Source Search
+
+```
+Query: "Search for papers on CRISPR-Cas9 gene therapy from the last 5 years"
+```
+
+BioAgent searches across:
+- PubMed (biomedical literature)
+- Semantic Scholar (broad academic papers)
+- Europe PMC (European research)
+- bioRxiv (preprints)
+- CrossRef (DOI resolution)
+
+#### Step-by-Step: Comprehensive Literature Search
+
+```
+Step 1: Query
+> Search for literature on CAR-T cell therapy in solid tumors.
+  Focus on clinical trials from 2020-2024.
+
+Step 2: BioAgent:
+- Queries multiple databases
+- Deduplicates results by DOI/PMID
+- Ranks by relevance and citation count
+
+Step 3: Response includes:
+- Total papers found: 847 (deduplicated from 1,234)
+- Top papers with titles, authors, abstracts
+- Citation counts and open access status
+```
+
+#### Citation Networks
+
+```
+Query: "Find papers that cite and are cited by PMID 32123456"
+```
+
+### 13.2 Citation Management
+
+Manage citations and generate bibliographies in multiple styles.
+
+#### Supported Citation Styles
+
+| Style | Example |
+|-------|---------|
+| **Vancouver** | 1. Author A, Author B. Title. Journal. 2024;1:1-10. |
+| **APA** | Author, A., & Author, B. (2024). Title. *Journal*, 1, 1-10. |
+| **Nature** | Author, A. & Author, B. Title. *Journal* **1**, 1-10 (2024). |
+| **Harvard** | Author, A. and Author, B. (2024) 'Title', *Journal*, 1, pp. 1-10. |
+| **IEEE** | [1] A. Author and B. Author, "Title," *Journal*, vol. 1, pp. 1-10, 2024. |
+
+#### Step-by-Step: Managing Citations
+
+```
+Step 1: Search and cite papers
+> Search for foundational papers on DNA damage repair
+
+Step 2: Add citations
+> Cite the top 5 papers in my bibliography using Vancouver style
+
+Step 3: Generate bibliography
+> Format my reference list
+
+Response:
+1. Jackson SP, Bartek J. The DNA-damage response in human biology...
+2. Ciccia A, Elledge SJ. The DNA damage response: making it safe...
+3. ...
+
+Step 4: Export
+> Export my citations as BibTeX
+```
+
+### 13.3 Report Generation
+
+Generate structured academic reports and research summaries.
+
+#### Creating Report Sections
+
+```
+Query: "Write an introduction section for a paper on BRCA1 and breast cancer"
+```
+
+#### Step-by-Step: Complete Report
+
+```
+Step 1: Plan the study
+> Plan a literature review on immunotherapy resistance mechanisms
+
+Response:
+Study Plan: Immunotherapy Resistance Mechanisms
+├── Section 1: Introduction
+├── Section 2: Primary Resistance
+├── Section 3: Acquired Resistance
+├── Section 4: Biomarkers
+└── Section 5: Future Directions
+
+Step 2: Generate each section
+> Generate the Introduction section with proper citations
+
+Step 3: Compile report
+> Compile all sections into a complete report with bibliography
+```
+
+### 13.4 Creating Presentations
+
+Generate PowerPoint-compatible presentations from research findings.
+
+#### Basic Presentation
+
+```
+Query: "Create a presentation summarizing my findings on p53 mutations"
+```
+
+#### Step-by-Step: Research Presentation
+
+```
+Step 1: Query
+> Create a 10-slide presentation on CAR-T cell therapy:
+  - Introduction and history
+  - Mechanism of action
+  - Clinical applications
+  - Challenges and limitations
+  - Future directions
+  Include relevant figures and data charts
+
+Step 2: BioAgent generates:
+- Title slide
+- Content slides with bullet points
+- Figure placeholders
+- References slide
+
+Step 3: Response:
+Presentation saved to: presentations/car_t_therapy.pptx
+
+Slides generated:
+1. CAR-T Cell Therapy: Revolution in Cancer Treatment
+2. History and Development
+3. Mechanism of Action (with diagram)
+4. Manufacturing Process
+5. Clinical Successes: Hematological Malignancies
+6. FDA-Approved CAR-T Products
+7. Challenges: Solid Tumors
+8. Safety Concerns: CRS and Neurotoxicity
+9. Future Directions
+10. References
+```
+
+---
+
+## 14. Multi-Agent Mode
+
+### 14.1 When to Use Multi-Agent
 
 Enable multi-agent mode for complex tasks requiring multiple specialties:
 
@@ -1778,8 +1942,9 @@ config.enable_multi_agent = True
 - Complex multi-step analyses
 - Tasks requiring both code and literature
 - Quality control with domain interpretation
+- Literature synthesis with citations
 
-### 13.2 Understanding Specialists
+### 14.2 Understanding Specialists
 
 | Specialist | Role | Tools | Best For |
 |------------|------|-------|----------|
@@ -1788,6 +1953,7 @@ config.enable_multi_agent = True
 | **Literature Agent** | Database queries | 20 | Gene info, pathways, literature |
 | **QC Reviewer** | Quality control | 8 | Validating results, checking data |
 | **Domain Expert** | Biological interpretation | 18 | Making sense of results |
+| **Research Agent** | Literature synthesis | 18 | Systematic reviews, citations, reports |
 
 #### Example: Multi-Agent Analysis
 
@@ -1810,9 +1976,9 @@ With multi-agent enabled:
 
 ---
 
-## 14. Complete Tutorials
+## 15. Complete Tutorials
 
-### 14.1 Tutorial 1: Gene Investigation
+### 15.1 Tutorial 1: Gene Investigation
 
 **Goal:** Comprehensively investigate a gene of interest
 
@@ -1849,7 +2015,7 @@ Step 9: Create summary
 > Create a summary report of everything we've learned about KRAS
 ```
 
-### 14.2 Tutorial 2: RNA-seq Analysis
+### 15.2 Tutorial 2: RNA-seq Analysis
 
 **Goal:** Complete differential expression analysis from raw counts
 
@@ -1881,7 +2047,7 @@ Step 8: Generate report
 > Create a Jupyter notebook documenting this entire analysis
 ```
 
-### 14.3 Tutorial 3: Variant Interpretation
+### 15.3 Tutorial 3: Variant Interpretation
 
 **Goal:** Interpret clinical significance of genetic variants
 
@@ -1911,7 +2077,7 @@ Step 7: Create report
 > Generate a clinical-style variant interpretation report
 ```
 
-### 14.4 Tutorial 4: Single-Cell Analysis
+### 15.4 Tutorial 4: Single-Cell Analysis
 
 **Goal:** Analyze single-cell RNA-seq data
 
@@ -1949,7 +2115,7 @@ Step 9: Create report
 
 ---
 
-## 15. Best Practices
+## 16. Best Practices
 
 ### Query Formulation
 
@@ -2002,7 +2168,7 @@ project/
 
 ---
 
-## 16. Troubleshooting
+## 17. Troubleshooting
 
 ### Common Issues
 
@@ -2102,4 +2268,4 @@ python run.py --complex "Complex task"
 ---
 
 *Last updated: February 2025*
-*BioAgent v1.1*
+*BioAgent v1.2*

@@ -24,6 +24,7 @@ from .specialists import (
     PipelineEngineerAgent,
     QCReviewerAgent,
     StatisticianAgent,
+    ResearchAgentSpecialist,
 )
 
 
@@ -64,6 +65,7 @@ class CoordinatorAgent:
         SpecialistType.LITERATURE_AGENT: LiteratureAgent,
         SpecialistType.QC_REVIEWER: QCReviewerAgent,
         SpecialistType.DOMAIN_EXPERT: DomainExpertAgent,
+        SpecialistType.RESEARCH_AGENT: ResearchAgentSpecialist,
     }
 
     def __init__(

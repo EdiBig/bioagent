@@ -91,6 +91,28 @@ ROUTING_PATTERNS: dict[SpecialistType, list[tuple[str, float]]] = {
         # Biological reasoning
         (r"\b(what\s+does\s+this\s+mean|how\s+does\s+this|makes?\s+sense)\b", 0.8),
     ],
+
+    SpecialistType.RESEARCH_AGENT: [
+        # Literature review requests
+        (r"\b(literature\s+review|systematic\s+review|research\s+synthesis)\b", 1.0),
+        (r"\b(review\s+the\s+literature|summarize\s+the\s+research)\b", 1.0),
+        (r"\b(what\s+is\s+known|current\s+evidence|published\s+research)\b", 0.9),
+        # Report generation
+        (r"\b(write|create|generate)\s+(a\s+)?(report|manuscript|paper|summary)\b", 1.0),
+        (r"\b(research\s+report|academic\s+report|scientific\s+report)\b", 1.0),
+        # Presentation creation
+        (r"\b(create|generate|make)\s+(a\s+)?(presentation|slides?|powerpoint|pptx)\b", 1.0),
+        (r"\b(presentation\s+on|slides?\s+about)\b", 0.9),
+        # Citation management
+        (r"\b(cite|citation|reference|bibliography|bibtex)\b", 0.9),
+        (r"\b(format\s+references|reference\s+list)\b", 0.9),
+        # Study planning
+        (r"\b(study\s+plan|research\s+plan|plan\s+the\s+research)\b", 0.9),
+        (r"\b(research\s+question|search\s+strategy)\b", 0.8),
+        # Evidence synthesis
+        (r"\b(synthesize|synthesis|evidence\s+summary)\b", 0.8),
+        (r"\b(comprehensive|thorough)\s+(review|analysis)\b", 0.7),
+    ],
 }
 
 

@@ -9,6 +9,16 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Auto-load .env file if present
+try:
+    from dotenv import load_dotenv
+    # Look for .env in the bioagent directory
+    _env_path = Path(__file__).parent / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path)
+except ImportError:
+    pass  # python-dotenv not installed, rely on environment variables
+
 
 def _default_workspace() -> str:
     """Return platform-appropriate default workspace directory."""

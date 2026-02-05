@@ -59,7 +59,7 @@ All through natural language conversation.
 | **Visualization** | Publication-quality figures (Nature, Cell, Science styles), interactive plots |
 | **Reporting** | Jupyter notebooks, R Markdown, Streamlit/Dash dashboards |
 | **Memory** | Semantic search, knowledge graphs, artifact storage, session summarization |
-| **Multi-Agent** | Coordinator-Specialist architecture with 5 specialist agents |
+| **Multi-Agent** | Coordinator-Specialist architecture with 6 specialist agents |
 
 ### Tool Count by Category
 
@@ -75,8 +75,9 @@ All through natural language conversation.
 | ML/AI | 5 | Predictive analytics |
 | Data Ingestion | 6 | Format detection, profiling, validation |
 | Workspace Tracking | 6 | Analysis tracking, project management |
+| Research & Literature | 14 | Literature synthesis, citations, reports |
 | Web Search | 1 | Documentation and literature |
-| **Total** | **58** | |
+| **Total** | **72** | |
 
 ---
 
@@ -148,18 +149,18 @@ python run.py --query "Submit a variant calling job to AWS Batch"
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         COORDINATOR AGENT                                    │
 │                   (routes tasks, synthesizes results)                        │
-└────────┬──────────┬──────────┬──────────┬──────────┬───────────────────────┘
-         │          │          │          │          │
-    ┌────┘     ┌────┘     ┌────┘     ┌────┘     ┌────┘
-    ▼          ▼          ▼          ▼          ▼
-┌────────┐┌────────┐┌────────┐┌────────┐┌────────┐
-│Pipeline││Statist-││Literat-││   QC   ││ Domain │
-│Engineer││ ician  ││  ure   ││Reviewer││ Expert │
-│        ││        ││ Agent  ││        ││        │
-│40 tools││21 tools││20 tools││8 tools ││18 tools│
-└───┬────┘└───┬────┘└───┬────┘└───┬────┘└───┬────┘
-    │         │         │         │         │
-    └─────────┴─────────┴────┬────┴─────────┘
+└────────┬──────────┬──────────┬──────────┬──────────┬──────────┬─────────────┘
+         │          │          │          │          │          │
+    ┌────┘     ┌────┘     ┌────┘     ┌────┘     ┌────┘     ┌────┘
+    ▼          ▼          ▼          ▼          ▼          ▼
+┌────────┐┌────────┐┌────────┐┌────────┐┌────────┐┌────────┐
+│Pipeline││Statist-││Literat-││   QC   ││ Domain ││Research│
+│Engineer││ ician  ││  ure   ││Reviewer││ Expert ││ Agent  │
+│        ││        ││ Agent  ││        ││        ││        │
+│40 tools││21 tools││20 tools││8 tools ││18 tools││18 tools│
+└───┬────┘└───┬────┘└───┬────┘└───┬────┘└───┬────┘└───┬────┘
+    │         │         │         │         │         │
+    └─────────┴─────────┴────┬────┴─────────┴─────────┘
                              ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              TOOL LAYER                                      │
@@ -889,6 +890,7 @@ BioAgent supports a Coordinator-Specialist architecture for complex tasks:
 | **Literature Agent** | Database queries | 20 | All database tools, web search, memory, data awareness |
 | **QC Reviewer** | Quality control | 8 | Read-only analysis, validation, data quality assessment |
 | **Domain Expert** | Biological interpretation | 18 | Database queries, ML predictions, knowledge synthesis |
+| **Research Agent** | Literature synthesis | 18 | Multi-source literature search, citation management, report generation, presentations |
 
 ### Enabling Multi-Agent Mode
 
@@ -921,9 +923,41 @@ User: "Analyze DEGs and find enriched pathways with literature support"
 Coordinator routes to:
 ├── Statistician → DE analysis, enrichment
 ├── Literature Agent → Pathway databases, PubMed
-└── Domain Expert → Biological interpretation
+├── Domain Expert → Biological interpretation
+└── Research Agent → Literature synthesis, citations
 
 Coordinator synthesizes → Final comprehensive response
+```
+
+### Research Agent Capabilities
+
+The Research Agent is a specialized specialist for deep literature synthesis and academic output:
+
+#### Literature Search
+- **Multi-source Search**: PubMed, Semantic Scholar, Europe PMC, CrossRef, bioRxiv, Unpaywall
+- **Paper Deduplication**: Automatic deduplication by DOI, PMID, and title normalization
+- **Citation Networks**: Forward and backward citation traversal
+- **Open Access**: Automatic PDF source discovery via Unpaywall
+
+#### Citation Management
+- **5 Citation Styles**: Vancouver, APA, Nature, Harvard, IEEE
+- **BibTeX Export**: Full bibliography export
+- **In-text Citations**: Automatic citation numbering/formatting
+
+#### Academic Output
+- **Study Planning**: Generate structured study plans for literature reviews
+- **Report Sections**: Create introduction, methods, results, discussion sections
+- **Presentations**: Generate PowerPoint-compatible slides with charts
+
+```python
+# Example: Literature synthesis
+result = agent.run("""
+Conduct a systematic literature review on CRISPR-Cas9 gene therapy:
+1. Search across PubMed and Semantic Scholar
+2. Focus on clinical trials from 2020-2024
+3. Synthesize findings with proper citations (Nature style)
+4. Create a presentation summarizing key findings
+""")
 ```
 
 ---
@@ -1472,6 +1506,18 @@ bioagent/
 │   ├── prompts.py            # Agent prompts
 │   ├── tools.py              # Tool filtering
 │   └── specialists/          # Specialist agents
+│
+├── # Research Agent
+├── Research_Agent/
+│   ├── __init__.py
+│   ├── agent.py              # ResearchAgent class
+│   ├── config.py             # Configuration
+│   ├── literature/           # Multi-source literature search
+│   │   └── clients.py        # PubMed, Semantic Scholar, Europe PMC, etc.
+│   ├── citations/            # Citation management
+│   │   └── manager.py        # 5 citation styles (Vancouver, APA, etc.)
+│   ├── reports/              # Report generation
+│   └── presentations/        # PowerPoint generation
 │
 ├── # Web Search
 ├── web_search.py             # DuckDuckGo search

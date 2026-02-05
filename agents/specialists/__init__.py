@@ -9,6 +9,7 @@ from .statistician import StatisticianAgent
 from .literature_agent import LiteratureAgent
 from .qc_reviewer import QCReviewerAgent
 from .domain_expert import DomainExpertAgent
+from .research_agent import ResearchAgentSpecialist
 
 __all__ = [
     "PipelineEngineerAgent",
@@ -16,6 +17,7 @@ __all__ = [
     "LiteratureAgent",
     "QCReviewerAgent",
     "DomainExpertAgent",
+    "ResearchAgentSpecialist",
 ]
 
 
@@ -35,5 +37,6 @@ def get_specialist_class(specialist_type: str):
         "literature_agent": LiteratureAgent,
         "qc_reviewer": QCReviewerAgent,
         "domain_expert": DomainExpertAgent,
+        "research_agent": ResearchAgentSpecialist,
     }
     return mapping.get(specialist_type)

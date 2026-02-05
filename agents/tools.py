@@ -159,6 +159,34 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "list_analyses",
         "get_analysis",
     ],
+
+    # Research Agent: Literature synthesis, citation management, academic output
+    "research_agent": [
+        # Literature search
+        "search_literature",
+        "get_paper_details",
+        "get_citation_network",
+        "get_paper_recommendations",
+        "find_open_access_pdf",
+        # Citation management
+        "add_citation",
+        "format_reference_list",
+        "export_bibtex",
+        # Study planning and reports
+        "plan_study",
+        "generate_report_section",
+        "compile_report",
+        # Presentations
+        "generate_presentation",
+        "add_chart_slide",
+        # Inter-agent communication
+        "advise_agent",
+        # Shared tools
+        "read_file",
+        "write_file",
+        "memory_search",
+        "memory_save_artifact",
+    ],
 }
 
 
