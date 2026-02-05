@@ -57,6 +57,14 @@ class Config:
     enable_artifacts: bool = True  # Enable artifact storage
     summary_after_rounds: int = 5  # Summarize conversation every N rounds
 
+    # ── Multi-Agent Mode ───────────────────────────────────────────────
+    enable_multi_agent: bool = False  # Master toggle for multi-agent mode
+    multi_agent_parallel: bool = True  # Allow parallel specialist execution
+    multi_agent_max_specialists: int = 3  # Max specialists per query
+    coordinator_model: str = "claude-sonnet-4-20250514"  # Model for coordinator
+    specialist_model: str = "claude-sonnet-4-20250514"  # Model for specialists
+    qc_model: str = "claude-haiku-3-5-20241022"  # Lighter model for QC reviewer
+
     @classmethod
     def from_env(cls) -> "Config":
         """Load configuration from environment variables."""
@@ -85,6 +93,13 @@ class Config:
             enable_knowledge_graph=os.getenv("BIOAGENT_ENABLE_KG", "true").lower() == "true",
             enable_artifacts=os.getenv("BIOAGENT_ENABLE_ARTIFACTS", "true").lower() == "true",
             summary_after_rounds=int(os.getenv("BIOAGENT_SUMMARY_ROUNDS", "5")),
+            # Multi-agent mode
+            enable_multi_agent=os.getenv("BIOAGENT_MULTI_AGENT", "false").lower() == "true",
+            multi_agent_parallel=os.getenv("BIOAGENT_MULTI_AGENT_PARALLEL", "true").lower() == "true",
+            multi_agent_max_specialists=int(os.getenv("BIOAGENT_MAX_SPECIALISTS", "3")),
+            coordinator_model=os.getenv("BIOAGENT_COORDINATOR_MODEL", "claude-sonnet-4-20250514"),
+            specialist_model=os.getenv("BIOAGENT_SPECIALIST_MODEL", "claude-sonnet-4-20250514"),
+            qc_model=os.getenv("BIOAGENT_QC_MODEL", "claude-haiku-3-5-20241022"),
         )
 
     def validate(self) -> list[str]:

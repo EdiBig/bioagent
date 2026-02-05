@@ -107,6 +107,229 @@ class BioAgent:
         # Session log
         self._session_log: list[dict] = []
 
+        # Initialize multi-agent coordinator if enabled
+        self.coordinator = None
+        if self.config.enable_multi_agent:
+            self._init_coordinator()
+
+    def _init_coordinator(self):
+        """Initialize the multi-agent coordinator."""
+        try:
+            from agents import CoordinatorAgent
+
+            # Build tool handlers dict for specialist agents
+            tool_handlers = self._build_tool_handlers()
+
+            self.coordinator = CoordinatorAgent(
+                client=self.client,
+                tool_handlers=tool_handlers,
+                memory=self.memory,
+                coordinator_model=self.config.coordinator_model,
+                specialist_model=self.config.specialist_model,
+                qc_model=self.config.qc_model,
+                max_specialists=self.config.multi_agent_max_specialists,
+                enable_parallel=self.config.multi_agent_parallel,
+                verbose=self.config.verbose,
+            )
+            self._log("🤖 Multi-agent coordinator initialized")
+
+        except Exception as e:
+            self._log(f"⚠️  Multi-agent initialization failed: {e}")
+            self.coordinator = None
+
+    def _build_tool_handlers(self) -> dict[str, callable]:
+        """Build a dictionary mapping tool names to handler functions."""
+        return {
+            "execute_python": lambda args: self.executor.execute_python(
+                code=args["code"],
+                timeout=args.get("timeout", 300),
+            ).to_string(),
+
+            "execute_r": lambda args: self.executor.execute_r(
+                code=args["code"],
+                timeout=args.get("timeout", 300),
+            ).to_string(),
+
+            "execute_bash": lambda args: self.executor.execute_bash(
+                command=args["command"],
+                timeout=args.get("timeout", 600),
+                working_dir=args.get("working_dir"),
+            ).to_string(),
+
+            "query_ncbi": lambda args: self.ncbi.query(
+                database=args["database"],
+                operation=args["operation"],
+                query=args["query"],
+                max_results=args.get("max_results", 10),
+                return_type=args.get("return_type", "json"),
+            ).to_string(),
+
+            "query_ensembl": lambda args: self.ensembl.query(
+                endpoint=args["endpoint"],
+                params=args.get("params", {}),
+                species=args.get("species", "homo_sapiens"),
+            ).to_string(),
+
+            "query_uniprot": lambda args: self.uniprot.query(
+                query=args["query"],
+                operation=args.get("operation", "search"),
+                format=args.get("format", "json"),
+                limit=args.get("limit", 10),
+            ).to_string(),
+
+            "query_kegg": lambda args: self.kegg.query(
+                operation=args["operation"],
+                database=args.get("database"),
+                query=args.get("query", ""),
+            ).to_string(),
+
+            "query_string": lambda args: self.string.query(
+                proteins=args["proteins"],
+                operation=args.get("operation", "interactions"),
+                species=args.get("species", 9606),
+                score_threshold=args.get("score_threshold", 400),
+                limit=args.get("limit", 25),
+            ).to_string(),
+
+            "query_pdb": lambda args: self.pdb.query(
+                query=args["query"],
+                operation=args.get("operation", "fetch"),
+                limit=args.get("limit", 10),
+            ).to_string(),
+
+            "query_alphafold": lambda args: self.alphafold.query(
+                query=args["query"],
+                operation=args.get("operation", "prediction"),
+            ).to_string(),
+
+            "query_interpro": lambda args: self.interpro.query(
+                query=args["query"],
+                operation=args.get("operation", "protein"),
+                limit=args.get("limit", 20),
+            ).to_string(),
+
+            "query_reactome": lambda args: self.reactome.query(
+                query=args["query"],
+                operation=args.get("operation", "pathway"),
+                species=args.get("species", "Homo sapiens"),
+                limit=args.get("limit", 20),
+            ).to_string(),
+
+            "query_go": lambda args: self.go.query(
+                query=args["query"],
+                operation=args.get("operation", "term"),
+                limit=args.get("limit", 25),
+            ).to_string(),
+
+            "query_gnomad": lambda args: self.gnomad.query(
+                query=args["query"],
+                operation=args.get("operation", "variant"),
+                dataset=args.get("dataset", "gnomad_r4"),
+            ).to_string(),
+
+            "read_file": lambda args: self.files.read_file(
+                path=args["path"],
+                head_lines=args.get("head_lines"),
+                encoding=args.get("encoding", "utf-8"),
+            ).to_string(),
+
+            "write_file": lambda args: self.files.write_file(
+                path=args["path"],
+                content=args["content"],
+                mode=args.get("mode", "w"),
+            ).to_string(),
+
+            "list_files": lambda args: self.files.list_files(
+                path=args["path"],
+                pattern=args.get("pattern", "*"),
+                recursive=args.get("recursive", False),
+            ).to_string(),
+
+            "web_search": lambda args: self.web_search.search(
+                query=args.get("query", ""),
+                max_results=args.get("max_results", 10),
+            ).to_string(),
+
+            "workflow_create": lambda args: self.workflows.create_workflow(
+                name=args["name"],
+                engine=args["engine"],
+                definition=args.get("definition"),
+                template=args.get("template"),
+                params=args.get("params"),
+            ).to_string(),
+
+            "workflow_run": lambda args: self.workflows.run_workflow(
+                workflow_path=args["workflow_path"],
+                engine=args.get("engine"),
+                params=args.get("params"),
+                resume=args.get("resume", False),
+            ).to_string(),
+
+            "workflow_status": lambda args: self.workflows.get_status(
+                workflow_id=args["workflow_id"],
+                engine=args["engine"],
+            ).to_string(),
+
+            "workflow_outputs": lambda args: self.workflows.get_outputs(
+                workflow_id=args["workflow_id"],
+                engine=args["engine"],
+            ).to_string(),
+
+            "workflow_list": lambda args: self._handle_workflow_list(args),
+
+            "workflow_check_engines": lambda args: format_engine_status(
+                self.workflows.check_engines()
+            ),
+
+            "memory_search": lambda args: self.memory.search_memory(
+                query=args["query"],
+                max_results=args.get("max_results", 5),
+            ) if self.memory else "Memory system not available",
+
+            "memory_save_artifact": lambda args: self.memory.save_artifact(
+                name=args["name"],
+                content=args["content"],
+                artifact_type=args.get("artifact_type", "analysis_result"),
+                description=args["description"],
+                tags=args.get("tags"),
+            ) if self.memory else "Memory system not available",
+
+            "memory_list_artifacts": lambda args: self.memory.list_artifacts(
+                artifact_type=args.get("artifact_type"),
+                query=args.get("query"),
+            ) if self.memory else "Memory system not available",
+
+            "memory_read_artifact": lambda args: self.memory.read_artifact(
+                artifact_id=args["artifact_id"],
+            ) if self.memory else "Memory system not available",
+
+            "memory_get_entities": lambda args: self.memory.get_entities(
+                query=args.get("query"),
+                entity_type=args.get("entity_type"),
+                include_relationships=args.get("include_relationships", False),
+            ) if self.memory else "Memory system not available",
+        }
+
+    def _handle_workflow_list(self, args: dict) -> str:
+        """Handle workflow_list tool call."""
+        engine = args.get("engine")
+        list_templates = args.get("list_templates", True)
+
+        parts = []
+        workflows = self.workflows.list_workflows(engine)
+        for eng, wf_list in workflows.items():
+            parts.append(f"\n{eng.capitalize()} Workflows ({len(wf_list)}):")
+            for wf in wf_list:
+                parts.append(f"  - {wf['id']}: {wf['path']}")
+
+        if list_templates:
+            templates = self.workflows.list_templates(engine)
+            parts.append("\nAvailable Templates:")
+            for eng, tpl_list in templates.items():
+                parts.append(f"  {eng}: {', '.join(tpl_list)}")
+
+        return "\n".join(parts) if parts else "No workflows found."
+
     def run(self, user_message: str, use_complex_model: bool = False) -> str:
         """
         Process a user message through the agentic loop.
@@ -118,6 +341,59 @@ class BioAgent:
         Returns:
             The agent's final text response
         """
+        # Route through multi-agent coordinator if enabled
+        if self.coordinator and self.config.enable_multi_agent:
+            return self._run_multi_agent(user_message)
+
+        # Otherwise use single-agent mode
+        return self._run_single_agent(user_message, use_complex_model)
+
+    def _run_multi_agent(self, user_message: str) -> str:
+        """Process user message through the multi-agent coordinator."""
+        self._log(f"\n{'='*60}")
+        self._log(f"🤖 BioAgent [Multi-Agent Mode]")
+        self._log(f"{'='*60}")
+        self._log(f"📝 User: {user_message[:200]}{'...' if len(user_message) > 200 else ''}")
+
+        try:
+            # Add to history for context
+            self.messages.append({"role": "user", "content": user_message})
+
+            # Run through coordinator
+            result = self.coordinator.run(
+                query=user_message,
+                conversation_history=self.messages,
+            )
+
+            # Add response to history
+            self.messages.append({"role": "assistant", "content": result.response})
+
+            # Update memory with completed analysis
+            if self.memory:
+                try:
+                    tools_used = []
+                    for output in result.specialist_outputs:
+                        tools_used.extend(output.tools_used)
+                    self.memory.on_analysis_complete(user_message, result.response, tools_used)
+                except Exception as e:
+                    self._log(f"⚠️  Memory analysis save error: {e}")
+
+            # Auto-save results
+            tools_used = []
+            for output in result.specialist_outputs:
+                tools_used.extend(output.tools_used)
+            self._auto_save_result(user_message, result.response, tools_used if tools_used else None)
+
+            self._log(f"\n✅ Multi-agent response complete ({result.execution_time:.1f}s)")
+
+            return result.response
+
+        except Exception as e:
+            self._log(f"⚠️  Multi-agent error: {e}, falling back to single-agent")
+            return self._run_single_agent(user_message, use_complex_model=False)
+
+    def _run_single_agent(self, user_message: str, use_complex_model: bool = False) -> str:
+        """Process user message through single-agent mode."""
         # Add user message to history
         self.messages.append({"role": "user", "content": user_message})
 
