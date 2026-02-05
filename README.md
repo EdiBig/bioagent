@@ -14,6 +14,7 @@ An AI-powered bioinformatics assistant that combines Claude's reasoning capabili
 - [Cloud & HPC Integration](#cloud--hpc-integration)
 - [Visualization & Reporting](#visualization--reporting)
 - [Memory System](#memory-system)
+- [Workspace & Analysis Tracking](#workspace--analysis-tracking)
 - [Multi-Agent System](#multi-agent-system)
 - [Configuration](#configuration)
 - [API Reference](#api-reference)
@@ -72,8 +73,10 @@ All through natural language conversation.
 | Visualization | 3 | Plots, reports, dashboards |
 | Cloud/HPC | 6 | Submit, monitor, scale jobs |
 | ML/AI | 5 | Predictive analytics |
+| Data Ingestion | 6 | Format detection, profiling, validation |
+| Workspace Tracking | 6 | Analysis tracking, project management |
 | Web Search | 1 | Documentation and literature |
-| **Total** | **43** | |
+| **Total** | **58** | |
 
 ---
 
@@ -153,7 +156,7 @@ python run.py --query "Submit a variant calling job to AWS Batch"
 │Pipeline││Statist-││Literat-││   QC   ││ Domain │
 │Engineer││ ician  ││  ure   ││Reviewer││ Expert │
 │        ││        ││ Agent  ││        ││        │
-│28 tools││18 tools││18 tools││5 tools ││18 tools│
+│40 tools││21 tools││20 tools││8 tools ││18 tools│
 └───┬────┘└───┬────┘└───┬────┘└───┬────┘└───┬────┘
     │         │         │         │         │
     └─────────┴─────────┴────┬────┴─────────┘
@@ -719,6 +722,160 @@ export BIOAGENT_MAX_MEMORY_RESULTS=10
 
 ---
 
+## Data Ingestion System
+
+BioAgent includes a powerful data intake layer that accepts files from any source, automatically detects bioinformatics formats, and generates rich profiles with quality assessment.
+
+### Supported Formats (34 formats)
+
+| Category | Formats |
+|----------|---------|
+| **Sequence** | FASTQ, FASTQ.gz, FASTA, FASTA.gz |
+| **Alignment** | BAM, SAM, CRAM |
+| **Variant** | VCF, VCF.gz, BCF, MAF |
+| **Expression** | h5ad (AnnData), HDF5, MTX, Loom |
+| **Annotation** | GTF, GFF3, GFF |
+| **Genomic Ranges** | BED, BigWig, BedGraph |
+| **Structure** | PDB, mmCIF |
+| **Tabular** | CSV, TSV, Excel, Parquet |
+
+### Data Sources
+
+```python
+from data_input import FileIngestor
+
+ingestor = FileIngestor(workspace_dir="./workspace")
+
+# Local file
+profile = ingestor.ingest("/data/reads.fastq.gz")
+
+# URL (HTTP/FTP)
+profile = ingestor.ingest("https://ftp.ensembl.org/pub/release-110/gtf/homo_sapiens/Homo_sapiens.GRCh38.110.gtf.gz")
+
+# S3 bucket
+profile = ingestor.ingest("s3://my-lab-data/rnaseq/counts.csv")
+
+# Google Cloud Storage
+profile = ingestor.ingest("gs://genomics-bucket/variants.vcf.gz")
+
+# Pasted data (auto-detected)
+profile = ingestor.ingest(">BRCA1\nMVLSPADKTNVKAAWGKV...")
+```
+
+### Format-Specific Profiling
+
+Each format gets specialized profiling:
+
+| Format | Profiled Metrics |
+|--------|------------------|
+| **FASTQ** | Read count, quality scores, GC content, paired-end detection |
+| **VCF** | Variant count, types (SNV/indel), PASS rate, sample count |
+| **BAM** | Mapped reads, duplicate rate, coverage per chromosome |
+| **CSV/TSV** | Columns, types, null counts, biological pattern detection |
+| **h5ad** | Cell/gene counts, metadata fields, layer names |
+
+### Dataset Validation
+
+Validate multi-file datasets for analysis readiness:
+
+```python
+from data_input import DatasetValidator
+
+validator = DatasetValidator()
+result = validator.validate(
+    [counts_profile, metadata_profile],
+    analysis_type="rnaseq"  # or "variant", "singlecell", "alignment"
+)
+# Returns: passed/failed checks, missing files, suggested fixes
+```
+
+### Ingestion Tools
+
+| Tool | Description |
+|------|-------------|
+| `ingest_file` | Ingest a single file from any source |
+| `ingest_batch` | Ingest multiple files with dataset-level summary |
+| `ingest_directory` | Scan a directory with glob pattern matching |
+| `list_ingested_files` | Show all ingested files with status |
+| `get_file_profile` | Retrieve detailed profile for a file |
+| `validate_dataset` | Check multi-file dataset readiness |
+
+---
+
+## Workspace & Analysis Tracking
+
+BioAgent provides comprehensive analysis organization with unique IDs and provenance tracking.
+
+### Features
+
+- **Unique Analysis IDs**: Each analysis gets a traceable ID (e.g., `BIO-20250205-001`)
+- **Project Organization**: Group related analyses into projects
+- **File Registry**: Central index of all files with provenance
+- **Provenance Tracking**: Track inputs, outputs, and tools used
+
+### Usage
+
+```python
+from workspace import AnalysisTracker, ProjectManager
+
+# Initialize tracker
+tracker = AnalysisTracker(workspace_dir="./workspace")
+
+# Start an analysis
+analysis_id = tracker.start_analysis(
+    title="RNA-seq Differential Expression",
+    analysis_type="differential_expression",
+    project_id="cancer-study-2025",
+    tags=["rnaseq", "tumor-vs-normal"]
+)
+
+# Register files
+tracker.register_file(analysis_id, "counts.csv", "input", "expression_matrix")
+tracker.register_file(analysis_id, "deg_results.csv", "output", "de_results", source_tool="execute_r")
+
+# Complete analysis
+tracker.complete_analysis(analysis_id, summary="Found 1,234 DEGs (FDR < 0.05)")
+
+# Search analyses
+analyses = tracker.list_analyses(
+    project_id="cancer-study-2025",
+    analysis_type="differential_expression"
+)
+```
+
+### Directory Structure
+
+```
+workspace/projects/
+├── {project_id}/
+│   ├── PROJECT_MANIFEST.json
+│   ├── analyses/
+│   │   └── BIO-20250205-001/
+│   │       ├── ANALYSIS_MANIFEST.json
+│   │       ├── inputs/
+│   │       ├── outputs/
+│   │       ├── reports/
+│   │       └── logs/
+│   └── data/
+└── registry/
+    ├── analyses.json
+    ├── projects.json
+    └── files.json
+```
+
+### Workspace Tools
+
+| Tool | Description |
+|------|-------------|
+| `start_analysis` | Begin a new tracked analysis session |
+| `complete_analysis` | Finalize analysis with summary and status |
+| `list_analyses` | List analyses with filters |
+| `get_analysis` | Get full analysis details |
+| `manage_project` | Create/update/list projects |
+| `tag_file` | Add metadata tags to registered files |
+
+---
+
 ## Multi-Agent System
 
 BioAgent supports a Coordinator-Specialist architecture for complex tasks:
@@ -727,10 +884,10 @@ BioAgent supports a Coordinator-Specialist architecture for complex tasks:
 
 | Agent | Role | Tools | Capabilities |
 |-------|------|-------|--------------|
-| **Pipeline Engineer** | Code & workflows | 28 | Python, R, Bash, workflows, cloud, ML, visualization |
-| **Statistician** | Statistical analysis | 18 | Stats, enrichment, DE analysis, ML, visualization |
-| **Literature Agent** | Database queries | 18 | All database tools, web search, memory |
-| **QC Reviewer** | Quality control | 5 | Read-only analysis and validation |
+| **Pipeline Engineer** | Code & workflows | 40 | Python, R, Bash, workflows, cloud, ML, visualization, data ingestion, workspace tracking |
+| **Statistician** | Statistical analysis | 21 | Stats, enrichment, DE analysis, ML, visualization, data validation |
+| **Literature Agent** | Database queries | 20 | All database tools, web search, memory, data awareness |
+| **QC Reviewer** | Quality control | 8 | Read-only analysis, validation, data quality assessment |
 | **Domain Expert** | Biological interpretation | 18 | Database queries, ML predictions, knowledge synthesis |
 
 ### Enabling Multi-Agent Mode
@@ -805,6 +962,14 @@ BIOAGENT_AUTO_SAVE=true
 BIOAGENT_RESULTS_DIR=results
 
 # =============================================================================
+# ANALYSIS TRACKING SETTINGS
+# =============================================================================
+BIOAGENT_ANALYSIS_TRACKING=true
+BIOAGENT_ANALYSIS_ID_PREFIX=BIO
+BIOAGENT_AUTO_CREATE_ANALYSIS=false
+BIOAGENT_DEFAULT_PROJECT=
+
+# =============================================================================
 # MULTI-AGENT SETTINGS
 # =============================================================================
 BIOAGENT_MULTI_AGENT=false
@@ -876,6 +1041,8 @@ BIOAGENT_SLURM_PARTITION=gpu
 | `BIOAGENT_MAX_ROUNDS` | No | `25` | Max tool iterations |
 | `BIOAGENT_MULTI_AGENT` | No | `false` | Enable multi-agent mode |
 | `BIOAGENT_MEMORY_ENABLED` | No | `true` | Enable memory system |
+| `BIOAGENT_ANALYSIS_TRACKING` | No | `true` | Enable analysis tracking |
+| `BIOAGENT_ANALYSIS_ID_PREFIX` | No | `BIO` | Prefix for analysis IDs |
 
 ---
 
@@ -1206,7 +1373,7 @@ bioagent/
 ├── agent.py                  # Core agentic loop
 ├── config.py                 # Configuration management
 ├── system.py                 # System prompt
-├── definitions.py            # Tool schemas (43 tools)
+├── definitions.py            # Tool schemas (58 tools)
 │
 ├── # Code Execution
 ├── code_executor.py          # Python/R/Bash execution
@@ -1233,6 +1400,25 @@ bioagent/
 │   ├── drug_response.py      # Pharmacogenomics
 │   ├── cell_annotation.py    # Cell typing
 │   └── biomarkers.py         # Feature selection
+│
+├── # Data Ingestion System
+├── data_input/
+│   ├── __init__.py
+│   ├── file_ingestor.py      # Main orchestrator
+│   ├── format_detector.py    # 34-format detection
+│   ├── data_source.py        # Source abstraction
+│   ├── profilers.py          # Format-specific profilers
+│   ├── dataset_validator.py  # Multi-file validation
+│   └── integration.py        # Agent integration
+│
+├── # Workspace & Analysis Tracking
+├── workspace/
+│   ├── __init__.py
+│   ├── analysis_tracker.py   # Analysis lifecycle
+│   ├── project_manager.py    # Project CRUD
+│   ├── id_generator.py       # Unique ID generation
+│   ├── file_registry.py      # File index
+│   └── search.py             # Cross-entity search
 │
 ├── # Workflow Engines
 ├── workflows/
@@ -1292,6 +1478,7 @@ bioagent/
 │
 ├── # Documentation
 ├── docs/
+│   ├── USER_GUIDE.md         # Comprehensive user guide
 │   ├── cloud-setup.md        # Cloud setup guide
 │   └── cloud-quickref.md     # Quick reference
 │

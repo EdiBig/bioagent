@@ -44,47 +44,58 @@ A comprehensive manual for using BioAgent - your AI-powered bioinformatics assis
    - [Cell Type Annotation](#54-cell-type-annotation)
    - [Biomarker Discovery](#55-biomarker-discovery)
 
-6. [Workflow Management](#6-workflow-management)
-   - [Nextflow Pipelines](#61-nextflow-pipelines)
-   - [Snakemake Workflows](#62-snakemake-workflows)
-   - [WDL Workflows](#63-wdl-workflows)
-   - [Using nf-core Pipelines](#64-using-nf-core-pipelines)
+6. [Data Ingestion](#6-data-ingestion)
+   - [Supported Formats](#61-supported-formats)
+   - [Ingesting Files](#62-ingesting-files)
+   - [Format-Specific Profiling](#63-format-specific-profiling)
+   - [Dataset Validation](#64-dataset-validation)
 
-7. [Cloud & HPC](#7-cloud--hpc)
-   - [AWS Batch](#71-aws-batch)
-   - [Google Cloud](#72-google-cloud)
-   - [Azure Batch](#73-azure-batch)
-   - [SLURM Clusters](#74-slurm-clusters)
-   - [Cost Management](#75-cost-management)
+7. [Workflow Management](#7-workflow-management)
+   - [Nextflow Pipelines](#71-nextflow-pipelines)
+   - [Snakemake Workflows](#72-snakemake-workflows)
+   - [WDL Workflows](#73-wdl-workflows)
+   - [Using nf-core Pipelines](#74-using-nf-core-pipelines)
 
-8. [Visualization](#8-visualization)
-   - [Publication Figures](#81-publication-figures)
-   - [Interactive Plots](#82-interactive-plots)
-   - [Common Plot Types](#83-common-plot-types)
+8. [Cloud & HPC](#8-cloud--hpc)
+   - [AWS Batch](#81-aws-batch)
+   - [Google Cloud](#82-google-cloud)
+   - [Azure Batch](#83-azure-batch)
+   - [SLURM Clusters](#84-slurm-clusters)
+   - [Cost Management](#85-cost-management)
 
-9. [Report Generation](#9-report-generation)
-   - [Jupyter Notebooks](#91-jupyter-notebooks)
-   - [R Markdown Reports](#92-r-markdown-reports)
-   - [Dashboards](#93-dashboards)
+9. [Visualization](#9-visualization)
+   - [Publication Figures](#91-publication-figures)
+   - [Interactive Plots](#92-interactive-plots)
+   - [Common Plot Types](#93-common-plot-types)
 
-10. [Memory System](#10-memory-system)
-    - [Searching Past Analyses](#101-searching-past-analyses)
-    - [Saving Artifacts](#102-saving-artifacts)
-    - [Knowledge Graph](#103-knowledge-graph)
+10. [Report Generation](#10-report-generation)
+    - [Jupyter Notebooks](#101-jupyter-notebooks)
+    - [R Markdown Reports](#102-r-markdown-reports)
+    - [Dashboards](#103-dashboards)
 
-11. [Multi-Agent Mode](#11-multi-agent-mode)
-    - [When to Use Multi-Agent](#111-when-to-use-multi-agent)
-    - [Understanding Specialists](#112-understanding-specialists)
+11. [Memory System](#11-memory-system)
+    - [Searching Past Analyses](#111-searching-past-analyses)
+    - [Saving Artifacts](#112-saving-artifacts)
+    - [Knowledge Graph](#113-knowledge-graph)
 
-12. [Complete Tutorials](#12-complete-tutorials)
-    - [Tutorial 1: Gene Investigation](#121-tutorial-1-gene-investigation)
-    - [Tutorial 2: RNA-seq Analysis](#122-tutorial-2-rna-seq-analysis)
-    - [Tutorial 3: Variant Interpretation](#123-tutorial-3-variant-interpretation)
-    - [Tutorial 4: Single-Cell Analysis](#124-tutorial-4-single-cell-analysis)
+12. [Workspace & Analysis Tracking](#12-workspace--analysis-tracking)
+    - [Starting an Analysis](#121-starting-an-analysis)
+    - [Managing Projects](#122-managing-projects)
+    - [Finding Past Work](#123-finding-past-work)
 
-13. [Best Practices](#13-best-practices)
+13. [Multi-Agent Mode](#13-multi-agent-mode)
+    - [When to Use Multi-Agent](#131-when-to-use-multi-agent)
+    - [Understanding Specialists](#132-understanding-specialists)
 
-14. [Troubleshooting](#14-troubleshooting)
+14. [Complete Tutorials](#14-complete-tutorials)
+    - [Tutorial 1: Gene Investigation](#141-tutorial-1-gene-investigation)
+    - [Tutorial 2: RNA-seq Analysis](#142-tutorial-2-rna-seq-analysis)
+    - [Tutorial 3: Variant Interpretation](#143-tutorial-3-variant-interpretation)
+    - [Tutorial 4: Single-Cell Analysis](#144-tutorial-4-single-cell-analysis)
+
+15. [Best Practices](#15-best-practices)
+
+16. [Troubleshooting](#16-troubleshooting)
 
 ---
 
@@ -242,7 +253,7 @@ Your Question
 
 ### 2.2 Tools and Capabilities
 
-BioAgent has **43 tools** across 9 categories:
+BioAgent has **58 tools** across 11 categories:
 
 | Category | Tools | What They Do |
 |----------|-------|--------------|
@@ -254,6 +265,8 @@ BioAgent has **43 tools** across 9 categories:
 | **Visualization** | 3 | Create figures and reports |
 | **Memory** | 5 | Remember and retrieve context |
 | **Files** | 3 | Read, write, list files |
+| **Data Ingestion** | 6 | Auto-detect formats, profile data |
+| **Workspace Tracking** | 6 | Track analyses, manage projects |
 | **Web Search** | 1 | Search documentation/papers |
 
 ### 2.3 Query Types
@@ -1060,9 +1073,129 @@ Top 10 Biomarkers:
 
 ---
 
-## 6. Workflow Management
+## 6. Data Ingestion
 
-### 6.1 Nextflow Pipelines
+BioAgent can automatically detect, profile, and validate your data files, helping you understand what you have before analysis begins.
+
+### 6.1 Supported Formats
+
+| Category | Formats |
+|----------|---------|
+| **Sequence** | FASTQ, FASTQ.gz, FASTA, FASTA.gz |
+| **Alignment** | BAM, SAM, CRAM |
+| **Variant** | VCF, VCF.gz, BCF, MAF |
+| **Expression** | h5ad (AnnData), HDF5, MTX, Loom |
+| **Annotation** | GTF, GFF3, GFF |
+| **Genomic Ranges** | BED, BigWig, BedGraph |
+| **Structure** | PDB, mmCIF |
+| **Tabular** | CSV, TSV, Excel, Parquet |
+
+### 6.2 Ingesting Files
+
+#### Single File
+
+```
+Query: "Ingest my data file at /data/experiment/counts.csv"
+```
+
+BioAgent will:
+1. Detect the source (local file, URL, S3, GCS)
+2. Identify the format (CSV in this case)
+3. Generate a profile with statistics
+4. Suggest appropriate analyses
+
+#### Multiple Files
+
+```
+Query: "Ingest all files in /data/rnaseq/"
+```
+
+#### From URLs
+
+```
+Query: "Ingest the GTF file from https://ftp.ensembl.org/pub/release-110/gtf/homo_sapiens/Homo_sapiens.GRCh38.110.gtf.gz"
+```
+
+#### Pasted Data
+
+```
+Query: ">BRCA1_variant
+MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSH"
+```
+
+BioAgent recognizes this as a FASTA sequence and profiles it automatically.
+
+### 6.3 Format-Specific Profiling
+
+Each format receives specialized analysis:
+
+#### FASTQ Files
+
+```
+Query: "Profile my sequencing reads at reads_R1.fastq.gz"
+
+Response includes:
+- Read count: 10,234,567
+- Average length: 150 bp
+- GC content: 42.3%
+- Mean quality: 35.2 (Phred)
+- Detected mate file: reads_R2.fastq.gz
+```
+
+#### VCF Files
+
+```
+Query: "Assess my variant file variants.vcf.gz"
+
+Response includes:
+- Variant count: 1,234,567
+- Types: SNV (1.1M), Insertion (80K), Deletion (55K)
+- Samples: 3
+- PASS rate: 85%
+- Warning: Missing tabix index
+```
+
+#### CSV/TSV (Tabular Data)
+
+```
+Query: "Profile the expression matrix in counts.csv"
+
+Response includes:
+- Dimensions: 20,000 genes × 12 samples
+- Column types detected
+- Data pattern: Expression count matrix
+- Suggested analysis: Differential expression
+```
+
+### 6.4 Dataset Validation
+
+For multi-file analyses, validate that your dataset is ready:
+
+```
+Query: "Validate my RNA-seq dataset: counts.csv and metadata.csv"
+
+Response:
+✅ Expression matrix found (20,000 genes × 12 samples)
+✅ Sample metadata found (12 samples with condition column)
+⚠️ No gene annotation (GTF) — will use gene IDs for enrichment
+
+Ready for differential expression analysis.
+```
+
+#### Validation Types
+
+| Type | Checks For |
+|------|------------|
+| `rnaseq` | Count matrix + metadata + optional GTF |
+| `variant` | VCF with variants + optional index |
+| `singlecell` | h5ad/MTX/Loom expression data |
+| `alignment` | FASTQ pairs + reference genome |
+
+---
+
+## 7. Workflow Management
+
+### 7.1 Nextflow Pipelines
 
 #### Creating a Pipeline
 
@@ -1108,7 +1241,7 @@ Step 6: Get outputs
 > Show me the outputs from my completed pipeline
 ```
 
-### 6.2 Snakemake Workflows
+### 7.2 Snakemake Workflows
 
 #### Creating a Workflow
 
@@ -1122,7 +1255,7 @@ Query: "Create a Snakemake workflow for variant calling with BWA and GATK"
 Query: "Run the Snakemake workflow in workflows/variant_calling/Snakefile with 8 cores"
 ```
 
-### 6.3 WDL Workflows
+### 7.3 WDL Workflows
 
 #### Creating a Workflow
 
@@ -1130,7 +1263,7 @@ Query: "Run the Snakemake workflow in workflows/variant_calling/Snakefile with 8
 Query: "Create a WDL workflow for germline variant calling"
 ```
 
-### 6.4 Using nf-core Pipelines
+### 7.4 Using nf-core Pipelines
 
 nf-core provides production-ready pipelines.
 
@@ -1169,9 +1302,9 @@ Step 4: Monitor progress
 
 ---
 
-## 7. Cloud & HPC
+## 8. Cloud & HPC
 
-### 7.1 AWS Batch
+### 8.1 AWS Batch
 
 #### Setup Requirements
 
@@ -1218,7 +1351,7 @@ Step 5: Get results
 > Download results from my completed AWS Batch job
 ```
 
-### 7.2 Google Cloud
+### 8.2 Google Cloud
 
 #### Setup Requirements
 
@@ -1235,7 +1368,7 @@ BIOAGENT_GCS_BUCKET=my-bucket
 Query: "Run my analysis on Google Cloud Life Sciences with 32GB RAM"
 ```
 
-### 7.3 Azure Batch
+### 8.3 Azure Batch
 
 #### Setup Requirements
 
@@ -1246,7 +1379,7 @@ AZURE_BATCH_URL=https://mybatchaccount.region.batch.azure.com
 AZURE_STORAGE_CONNECTION_STRING=your-connection-string
 ```
 
-### 7.4 SLURM Clusters
+### 8.4 SLURM Clusters
 
 #### Setup Requirements
 
@@ -1263,7 +1396,7 @@ BIOAGENT_SLURM_PARTITION=compute
 Query: "Submit my RNA-seq pipeline to the SLURM cluster using the gpu partition"
 ```
 
-### 7.5 Cost Management
+### 8.5 Cost Management
 
 #### Cost Estimation
 
@@ -1279,9 +1412,9 @@ Query: "Submit my job to AWS using spot instances to minimize cost"
 
 ---
 
-## 8. Visualization
+## 9. Visualization
 
-### 8.1 Publication Figures
+### 9.1 Publication Figures
 
 Create journal-ready figures.
 
@@ -1325,7 +1458,7 @@ Step 3: Response includes:
 | `science` | Science | Single: 55mm, double: 114mm |
 | `pnas` | PNAS | Single: 8.7cm, double: 17.8cm |
 
-### 8.2 Interactive Plots
+### 9.2 Interactive Plots
 
 Create web-based interactive visualizations.
 
@@ -1341,7 +1474,7 @@ Query: "Create an interactive volcano plot where I can hover to see gene names"
 Query: "Create an interactive network visualization of the STRING interaction data"
 ```
 
-### 8.3 Common Plot Types
+### 9.3 Common Plot Types
 
 | Plot Type | Use Case | Query Example |
 |-----------|----------|---------------|
@@ -1355,9 +1488,9 @@ Query: "Create an interactive network visualization of the STRING interaction da
 
 ---
 
-## 9. Report Generation
+## 10. Report Generation
 
-### 9.1 Jupyter Notebooks
+### 10.1 Jupyter Notebooks
 
 Generate reproducible analysis notebooks.
 
@@ -1392,7 +1525,7 @@ Notebook saved to: reports/rnaseq_analysis.ipynb
 To run: jupyter notebook reports/rnaseq_analysis.ipynb
 ```
 
-### 9.2 R Markdown Reports
+### 10.2 R Markdown Reports
 
 Generate HTML or PDF reports.
 
@@ -1408,7 +1541,7 @@ Query: "Create an R Markdown report of my variant analysis with HTML output"
 Query: "Generate a PDF report of my single-cell analysis results"
 ```
 
-### 9.3 Dashboards
+### 10.3 Dashboards
 
 Create interactive data exploration apps.
 
@@ -1447,9 +1580,9 @@ Step 4: Open http://localhost:8501 in browser
 
 ---
 
-## 10. Memory System
+## 11. Memory System
 
-### 10.1 Searching Past Analyses
+### 11.1 Searching Past Analyses
 
 Find relevant information from previous work.
 
@@ -1476,7 +1609,7 @@ Step 3: BioAgent searches memory and returns:
 - Related artifacts saved
 ```
 
-### 10.2 Saving Artifacts
+### 11.2 Saving Artifacts
 
 Save important results for later use.
 
@@ -1492,7 +1625,7 @@ Query: "List all artifacts I've saved"
 Query: "Retrieve my saved biomarker panel"
 ```
 
-### 10.3 Knowledge Graph
+### 11.3 Knowledge Graph
 
 Track entities and relationships discovered during analyses.
 
@@ -1506,9 +1639,128 @@ Query: "Show me all relationships I've found for TP53"
 
 ---
 
-## 11. Multi-Agent Mode
+## 12. Workspace & Analysis Tracking
 
-### 11.1 When to Use Multi-Agent
+BioAgent tracks your analyses with unique IDs and organizes results into projects for easy retrieval and reproducibility.
+
+### 12.1 Starting an Analysis
+
+```
+Query: "Start a new analysis for my RNA-seq differential expression study"
+
+Response:
+Started analysis: BIO-20250205-001
+Title: RNA-seq Differential Expression
+Type: differential_expression
+
+All outputs will be tracked under this ID.
+```
+
+BioAgent automatically:
+- Generates a unique ID (e.g., `BIO-20250205-001`)
+- Creates a workspace directory
+- Tracks all inputs and outputs
+- Records which tools were used
+
+### 12.2 Managing Projects
+
+Group related analyses into projects:
+
+```
+Query: "Create a new project called 'Cancer Study 2025'"
+
+Response:
+Created project: cancer-study-2025
+Directory: workspace/projects/cancer-study-2025/
+```
+
+#### Add Analysis to Project
+
+```
+Query: "Add my current analysis to the cancer-study-2025 project"
+```
+
+#### List Project Analyses
+
+```
+Query: "Show all analyses in the cancer-study-2025 project"
+
+Response:
+Project: cancer-study-2025
+Analyses:
+┌────────────────────┬────────────────────────┬───────────┬─────────────┐
+│ ID                 │ Title                  │ Status    │ Date        │
+├────────────────────┼────────────────────────┼───────────┼─────────────┤
+│ BIO-20250205-001   │ RNA-seq DE Analysis    │ completed │ 2025-02-05  │
+│ BIO-20250205-002   │ Pathway Enrichment     │ completed │ 2025-02-05  │
+│ BIO-20250206-001   │ Variant Analysis       │ running   │ 2025-02-06  │
+└────────────────────┴────────────────────────┴───────────┴─────────────┘
+```
+
+### 12.3 Finding Past Work
+
+#### Search by Keyword
+
+```
+Query: "Find my analyses involving BRCA1"
+```
+
+#### Search by Type
+
+```
+Query: "List all my differential expression analyses"
+```
+
+#### Get Analysis Details
+
+```
+Query: "Show details for analysis BIO-20250205-001"
+
+Response:
+Analysis: BIO-20250205-001
+Title: RNA-seq Differential Expression
+Status: completed
+Project: cancer-study-2025
+
+Inputs:
+- counts.csv (expression_matrix)
+- metadata.csv (sample_metadata)
+
+Outputs:
+- deg_results.csv (de_results)
+- volcano_plot.pdf (figure)
+
+Tools Used: execute_r, create_plot
+Summary: Found 1,234 DEGs (FDR < 0.05)
+```
+
+### 12.4 Directory Structure
+
+```
+workspace/projects/
+├── cancer-study-2025/
+│   ├── PROJECT_MANIFEST.json
+│   ├── analyses/
+│   │   ├── BIO-20250205-001/
+│   │   │   ├── ANALYSIS_MANIFEST.json
+│   │   │   ├── inputs/
+│   │   │   ├── outputs/
+│   │   │   ├── reports/
+│   │   │   └── logs/
+│   │   └── BIO-20250205-002/
+│   │       └── ...
+│   └── data/
+└── registry/
+    ├── analyses.json
+    ├── projects.json
+    └── files.json
+```
+
+---
+
+## 13. Multi-Agent Mode
+
+### 13.1 When to Use Multi-Agent
 
 Enable multi-agent mode for complex tasks requiring multiple specialties:
 
@@ -1527,15 +1779,15 @@ config.enable_multi_agent = True
 - Tasks requiring both code and literature
 - Quality control with domain interpretation
 
-### 11.2 Understanding Specialists
+### 13.2 Understanding Specialists
 
-| Specialist | Role | Best For |
-|------------|------|----------|
-| **Pipeline Engineer** | Code & workflows | Running analyses, creating pipelines |
-| **Statistician** | Statistical analysis | DE analysis, enrichment, ML |
-| **Literature Agent** | Database queries | Gene info, pathways, literature |
-| **QC Reviewer** | Quality control | Validating results, checking data |
-| **Domain Expert** | Biological interpretation | Making sense of results |
+| Specialist | Role | Tools | Best For |
+|------------|------|-------|----------|
+| **Pipeline Engineer** | Code & workflows | 40 | Running analyses, creating pipelines |
+| **Statistician** | Statistical analysis | 21 | DE analysis, enrichment, ML |
+| **Literature Agent** | Database queries | 20 | Gene info, pathways, literature |
+| **QC Reviewer** | Quality control | 8 | Validating results, checking data |
+| **Domain Expert** | Biological interpretation | 18 | Making sense of results |
 
 #### Example: Multi-Agent Analysis
 
@@ -1558,9 +1810,9 @@ With multi-agent enabled:
 
 ---
 
-## 12. Complete Tutorials
+## 14. Complete Tutorials
 
-### 12.1 Tutorial 1: Gene Investigation
+### 14.1 Tutorial 1: Gene Investigation
 
 **Goal:** Comprehensively investigate a gene of interest
 
@@ -1597,7 +1849,7 @@ Step 9: Create summary
 > Create a summary report of everything we've learned about KRAS
 ```
 
-### 12.2 Tutorial 2: RNA-seq Analysis
+### 14.2 Tutorial 2: RNA-seq Analysis
 
 **Goal:** Complete differential expression analysis from raw counts
 
@@ -1629,7 +1881,7 @@ Step 8: Generate report
 > Create a Jupyter notebook documenting this entire analysis
 ```
 
-### 12.3 Tutorial 3: Variant Interpretation
+### 14.3 Tutorial 3: Variant Interpretation
 
 **Goal:** Interpret clinical significance of genetic variants
 
@@ -1659,7 +1911,7 @@ Step 7: Create report
 > Generate a clinical-style variant interpretation report
 ```
 
-### 12.4 Tutorial 4: Single-Cell Analysis
+### 14.4 Tutorial 4: Single-Cell Analysis
 
 **Goal:** Analyze single-cell RNA-seq data
 
@@ -1697,7 +1949,7 @@ Step 9: Create report
 
 ---
 
-## 13. Best Practices
+## 15. Best Practices
 
 ### Query Formulation
 
@@ -1750,7 +2002,7 @@ project/
 
 ---
 
-## 14. Troubleshooting
+## 16. Troubleshooting
 
 ### Common Issues
 
@@ -1850,4 +2102,4 @@ python run.py --complex "Complex task"
 ---
 
 *Last updated: February 2025*
-*BioAgent v1.0*
+*BioAgent v1.1*
