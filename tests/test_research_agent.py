@@ -3,7 +3,10 @@ Test the Research Agent literature search functionality.
 """
 
 import sys
-sys.path.insert(0, ".")
+from pathlib import Path
+
+# Add parent directory (bioagent root) to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def test_literature_search():
     """Test the literature search clients and orchestrator."""

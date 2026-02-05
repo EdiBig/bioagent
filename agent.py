@@ -18,21 +18,21 @@ import anthropic
 from config import Config
 from system import SYSTEM_PROMPT
 from definitions import get_tools
-from code_executor import CodeExecutor
-from ncbi import NCBIClient
-from ensembl import EnsemblClient
-from uniprot import UniProtClient
-from kegg import KEGGClient
-from string_db import STRINGClient
-from pdb_client import PDBClient
-from alphafold import AlphaFoldClient
-from interpro import InterProClient
-from reactome import ReactomeClient
-from gene_ontology import GeneOntologyClient
-from gnomad import GnomADClient
-from file_manager import FileManager
+from utils import CodeExecutor, FileManager, WebSearchClient
+from databases import (
+    NCBIClient,
+    EnsemblClient,
+    UniProtClient,
+    KEGGClient,
+    STRINGClient,
+    PDBClient,
+    AlphaFoldClient,
+    InterProClient,
+    ReactomeClient,
+    GeneOntologyClient,
+    GnomADClient,
+)
 from workflows import WorkflowManager, format_engine_status
-from web_search import WebSearchClient
 from memory import MemoryConfig, ContextManager
 from visualization import InteractivePlotter, PublicationFigure
 from reporting import create_analysis_notebook, create_rmarkdown_report, create_dashboard

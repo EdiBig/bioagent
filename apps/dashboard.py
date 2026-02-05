@@ -3,7 +3,7 @@ BioAgent Web Dashboard
 
 A Streamlit-based web interface for interacting with BioAgent.
 
-Run with: streamlit run dashboard.py
+Run with: streamlit run apps/dashboard.py
 """
 
 import streamlit as st
@@ -13,8 +13,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# Add bioagent to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add bioagent root to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import Config
 from agent import BioAgent

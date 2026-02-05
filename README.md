@@ -1407,24 +1407,29 @@ bioagent/
 ├── agent.py                  # Core agentic loop
 ├── config.py                 # Configuration management
 ├── system.py                 # System prompt
-├── definitions.py            # Tool schemas (58 tools)
+├── definitions.py            # Tool schemas (72 tools)
 │
-├── # Code Execution
-├── code_executor.py          # Python/R/Bash execution
-├── file_manager.py           # File I/O
+├── # Utility Modules
+├── utils/
+│   ├── __init__.py
+│   ├── code_executor.py      # Python/R/Bash execution
+│   ├── file_manager.py       # File I/O
+│   └── web_search.py         # DuckDuckGo search
 │
 ├── # Database Clients (11)
-├── ncbi.py                   # NCBI E-utilities
-├── ensembl.py                # Ensembl REST API
-├── uniprot.py                # UniProt REST API
-├── kegg.py                   # KEGG REST API
-├── string_db.py              # STRING database
-├── pdb_client.py             # PDB/RCSB
-├── alphafold.py              # AlphaFold DB
-├── interpro.py               # InterPro
-├── reactome.py               # Reactome
-├── gene_ontology.py          # Gene Ontology
-├── gnomad.py                 # gnomAD
+├── databases/
+│   ├── __init__.py
+│   ├── ncbi.py               # NCBI E-utilities
+│   ├── ensembl.py            # Ensembl REST API
+│   ├── uniprot.py            # UniProt REST API
+│   ├── kegg.py               # KEGG REST API
+│   ├── string_db.py          # STRING database
+│   ├── pdb_client.py         # PDB/RCSB
+│   ├── alphafold.py          # AlphaFold DB
+│   ├── interpro.py           # InterPro
+│   ├── reactome.py           # Reactome
+│   ├── gene_ontology.py      # Gene Ontology
+│   └── gnomad.py             # gnomAD
 │
 ├── # ML/AI Modules (5)
 ├── ml/
@@ -1485,7 +1490,7 @@ bioagent/
 │   ├── __init__.py
 │   ├── notebook.py           # Jupyter notebooks
 │   ├── rmarkdown.py          # R Markdown
-│   └── dashboard.py          # Streamlit/Dash
+│   └── dashboard.py          # Streamlit/Dash generators
 │
 ├── # Memory System
 ├── memory/
@@ -1505,22 +1510,25 @@ bioagent/
 │   ├── context.py            # Shared context
 │   ├── prompts.py            # Agent prompts
 │   ├── tools.py              # Tool filtering
-│   └── specialists/          # Specialist agents
+│   └── specialists/          # Specialist agents (6)
 │
 ├── # Research Agent
 ├── Research_Agent/
 │   ├── __init__.py
 │   ├── agent.py              # ResearchAgent class
 │   ├── config.py             # Configuration
+│   ├── output_manager.py     # Organized file storage
 │   ├── literature/           # Multi-source literature search
-│   │   └── clients.py        # PubMed, Semantic Scholar, Europe PMC, etc.
+│   │   └── clients.py        # PubMed, Semantic Scholar, etc.
 │   ├── citations/            # Citation management
-│   │   └── manager.py        # 5 citation styles (Vancouver, APA, etc.)
-│   ├── reports/              # Report generation
-│   └── presentations/        # PowerPoint generation
+│   │   └── manager.py        # 5 citation styles
+│   ├── presentations/        # PowerPoint generation
+│   └── workflows/            # Study planning
 │
-├── # Web Search
-├── web_search.py             # DuckDuckGo search
+├── # Web Applications
+├── apps/
+│   ├── __init__.py
+│   └── dashboard.py          # Streamlit web interface
 │
 ├── # Documentation
 ├── docs/
@@ -1528,8 +1536,15 @@ bioagent/
 │   ├── cloud-setup.md        # Cloud setup guide
 │   └── cloud-quickref.md     # Quick reference
 │
-└── # Tests
-    └── test_ml_tools.py      # ML tools test suite
+├── # Tests
+├── tests/
+│   ├── __init__.py
+│   ├── test_research_agent.py
+│   └── test_arthritis_research.py
+│
+├── requirements.txt          # Python dependencies
+├── Dockerfile.biotools       # Docker image for tools
+└── .env.example              # Environment template
 ```
 
 ---

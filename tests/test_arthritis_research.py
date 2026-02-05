@@ -27,12 +27,12 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# Ensure imports work
-sys.path.insert(0, str(Path(__file__).parent))
+# Ensure imports work - add parent directory (bioagent root)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Load environment
+# Load environment from bioagent root
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent / ".env")
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 
 def print_section(title: str):

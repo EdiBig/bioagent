@@ -1,8 +1,6 @@
 # Environment and secrets
 .env
 *.secrets
-*Secretes*
-my-Secretes.txt
 
 # Python
 __pycache__/
@@ -13,6 +11,13 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+.venv/
 
 # IDE
 .vscode/
@@ -23,7 +28,16 @@ build/
 # OS
 .DS_Store
 Thumbs.db
-nul
 
 # Claude Code
 .claude/
+
+# Test outputs (generated files)
+*_report.md
+*_viz_data.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
