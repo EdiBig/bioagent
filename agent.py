@@ -36,6 +36,7 @@ from web_search import WebSearchClient
 from memory import MemoryConfig, ContextManager
 from visualization import InteractivePlotter, PublicationFigure
 from reporting import create_analysis_notebook, create_rmarkdown_report, create_dashboard
+from cloud import CloudExecutor, CloudConfig, ResourceSpec, JobStatus
 
 
 class BioAgent:
@@ -855,6 +856,25 @@ class BioAgent:
             elif name == "create_dashboard":
                 return self._create_dashboard(input_data)
 
+            # ── Cloud & HPC Tools ───────────────────────────────────────────
+            elif name == "cloud_submit_job":
+                return self._cloud_submit_job(input_data)
+
+            elif name == "cloud_job_status":
+                return self._cloud_job_status(input_data)
+
+            elif name == "cloud_job_logs":
+                return self._cloud_job_logs(input_data)
+
+            elif name == "cloud_cancel_job":
+                return self._cloud_cancel_job(input_data)
+
+            elif name == "cloud_list_jobs":
+                return self._cloud_list_jobs(input_data)
+
+            elif name == "cloud_estimate_cost":
+                return self._cloud_estimate_cost(input_data)
+
             else:
                 return f"Unknown tool: {name}"
 
@@ -1186,6 +1206,249 @@ class BioAgent:
 
         except Exception as e:
             return f"Dashboard creation failed: {e}"
+
+    # ── Cloud & HPC Methods ──────────────────────────────────────────
+
+    def _get_cloud_executor(self) -> CloudExecutor:
+        """Get or create cloud executor instance."""
+        if not hasattr(self, "_cloud_executor"):
+            cloud_config = CloudConfig.from_env()
+            self._cloud_executor = CloudExecutor(cloud_config)
+        return self._cloud_executor
+
+    def _cloud_submit_job(self, input_data: dict) -> str:
+        """Submit a job to cloud/HPC backend."""
+        command = input_data["command"]
+        backend = input_data.get("backend", "auto")
+
+        # Build resource specification
+        resources = ResourceSpec(
+            vcpus=input_data.get("vcpus", 4),
+            memory_gb=input_data.get("memory_gb", 16),
+            gpu_count=input_data.get("gpu_count", 0),
+            timeout_hours=input_data.get("timeout_hours", 24),
+            use_spot=input_data.get("use_spot", True),
+        )
+
+        # Optional parameters
+        container = input_data.get("container")
+        input_files = input_data.get("input_files", [])
+        output_path = input_data.get("output_path")
+
+        try:
+            executor = self._get_cloud_executor()
+
+            # Check available backends
+            available = executor.get_available_backends()
+            if not available:
+                return (
+                    "No cloud backends are configured. Set environment variables for:\n"
+                    "- AWS: AWS_S3_BUCKET, AWS_BATCH_QUEUE\n"
+                    "- GCP: GCP_PROJECT, GCP_GCS_BUCKET\n"
+                    "- Azure: AZURE_SUBSCRIPTION_ID, AZURE_BATCH_ACCOUNT\n"
+                    "- SLURM: SLURM_HOST, SLURM_USER"
+                )
+
+            # Submit job
+            if backend == "auto":
+                job_id = executor.submit_job(
+                    command=command,
+                    resources=resources,
+                    container=container,
+                    input_files=input_files,
+                    output_path=output_path,
+                )
+            else:
+                job_id = executor.submit_job(
+                    command=command,
+                    backend=backend,
+                    resources=resources,
+                    container=container,
+                    input_files=input_files,
+                    output_path=output_path,
+                )
+
+            # Get cost estimate
+            cost = executor._select_best_executor(resources).estimate_cost(resources, resources.timeout_hours)
+
+            return (
+                f"Job submitted successfully!\n"
+                f"  Job ID: {job_id}\n"
+                f"  Backend: {backend}\n"
+                f"  Resources: {resources.vcpus} vCPUs, {resources.memory_gb}GB RAM"
+                f"{f', {resources.gpu_count} GPUs' if resources.gpu_count else ''}\n"
+                f"  Estimated cost: ${cost.get('spot', 0):.2f} (spot) / ${cost.get('on_demand', 0):.2f} (on-demand)\n"
+                f"Use cloud_job_status to check progress."
+            )
+
+        except Exception as e:
+            return f"Job submission failed: {e}"
+
+    def _cloud_job_status(self, input_data: dict) -> str:
+        """Get status of a cloud job."""
+        job_id = input_data["job_id"]
+        backend = input_data.get("backend")
+
+        try:
+            executor = self._get_cloud_executor()
+            info = executor.get_job_status(job_id, backend)
+
+            status_emoji = {
+                JobStatus.PENDING: "⏳",
+                JobStatus.SUBMITTED: "📤",
+                JobStatus.RUNNING: "🔄",
+                JobStatus.SUCCEEDED: "✅",
+                JobStatus.FAILED: "❌",
+                JobStatus.CANCELLED: "🚫",
+                JobStatus.UNKNOWN: "❓",
+            }
+
+            result = [
+                f"Job Status: {status_emoji.get(info.status, '')} {info.status.value.upper()}",
+                f"  Job ID: {info.job_id}",
+                f"  Backend: {info.backend}",
+                f"  Submitted: {info.submit_time}",
+            ]
+
+            if info.start_time:
+                result.append(f"  Started: {info.start_time}")
+            if info.end_time:
+                result.append(f"  Ended: {info.end_time}")
+            if info.exit_code is not None:
+                result.append(f"  Exit Code: {info.exit_code}")
+            if info.error_message:
+                result.append(f"  Error: {info.error_message}")
+            if info.log_url:
+                result.append(f"  Logs: {info.log_url}")
+
+            return "\n".join(result)
+
+        except Exception as e:
+            return f"Failed to get job status: {e}"
+
+    def _cloud_job_logs(self, input_data: dict) -> str:
+        """Get logs for a cloud job."""
+        job_id = input_data["job_id"]
+        tail = input_data.get("tail", 100)
+        backend = input_data.get("backend")
+
+        try:
+            executor = self._get_cloud_executor()
+            logs = executor.get_job_logs(job_id, backend, tail)
+            return f"=== Logs for job {job_id} (last {tail} lines) ===\n\n{logs}"
+
+        except Exception as e:
+            return f"Failed to get logs: {e}"
+
+    def _cloud_cancel_job(self, input_data: dict) -> str:
+        """Cancel a cloud job."""
+        job_id = input_data["job_id"]
+        backend = input_data.get("backend")
+
+        try:
+            executor = self._get_cloud_executor()
+            success = executor.cancel_job(job_id, backend)
+
+            if success:
+                return f"Job {job_id} cancelled successfully."
+            else:
+                return f"Failed to cancel job {job_id}. It may have already completed."
+
+        except Exception as e:
+            return f"Failed to cancel job: {e}"
+
+    def _cloud_list_jobs(self, input_data: dict) -> str:
+        """List cloud jobs."""
+        status_filter = input_data.get("status")
+        backend = input_data.get("backend")
+        limit = input_data.get("limit", 50)
+
+        try:
+            executor = self._get_cloud_executor()
+
+            # Map status string to enum
+            status_enum = None
+            if status_filter:
+                status_map = {
+                    "pending": JobStatus.PENDING,
+                    "running": JobStatus.RUNNING,
+                    "succeeded": JobStatus.SUCCEEDED,
+                    "failed": JobStatus.FAILED,
+                }
+                status_enum = status_map.get(status_filter.lower())
+
+            if backend:
+                # List from specific backend
+                exec_backend = executor.get_executor(backend)
+                jobs = exec_backend.list_jobs(status_enum, limit)
+                jobs_by_backend = {backend: jobs}
+            else:
+                # List from all backends
+                jobs_by_backend = executor.list_all_jobs(status_enum, limit)
+
+            # Format output
+            lines = ["=== Cloud/HPC Jobs ==="]
+
+            total = 0
+            for backend_name, jobs in jobs_by_backend.items():
+                if jobs:
+                    lines.append(f"\n{backend_name.upper()}:")
+                    for job in jobs[:limit]:
+                        status_icon = "✅" if job.status == JobStatus.SUCCEEDED else "❌" if job.status == JobStatus.FAILED else "🔄" if job.status == JobStatus.RUNNING else "⏳"
+                        lines.append(f"  {status_icon} {job.job_id}: {job.status.value}")
+                        total += 1
+
+            if total == 0:
+                lines.append("\nNo jobs found.")
+            else:
+                lines.append(f"\nTotal: {total} jobs")
+
+            return "\n".join(lines)
+
+        except Exception as e:
+            return f"Failed to list jobs: {e}"
+
+    def _cloud_estimate_cost(self, input_data: dict) -> str:
+        """Estimate cost for cloud job."""
+        vcpus = input_data["vcpus"]
+        memory_gb = input_data["memory_gb"]
+        gpu_count = input_data.get("gpu_count", 0)
+        duration_hours = input_data["duration_hours"]
+
+        resources = ResourceSpec(
+            vcpus=vcpus,
+            memory_gb=memory_gb,
+            gpu_count=gpu_count,
+        )
+
+        try:
+            executor = self._get_cloud_executor()
+
+            # Get cost estimates
+            if executor._executors:
+                backend = next(iter(executor._executors.values()))
+                estimates = backend.estimate_cost(resources, duration_hours)
+            else:
+                # Use base pricing if no backends configured
+                estimates = {
+                    "on_demand": round((vcpus * 0.05 + memory_gb * 0.005 + gpu_count * 1.0) * duration_hours, 2),
+                    "spot": round((vcpus * 0.015 + memory_gb * 0.002 + gpu_count * 0.3) * duration_hours, 2),
+                }
+
+            return (
+                f"=== Cost Estimate ===\n\n"
+                f"Resources: {vcpus} vCPUs, {memory_gb}GB RAM"
+                f"{f', {gpu_count} GPUs' if gpu_count else ''}\n"
+                f"Duration: {duration_hours} hours\n\n"
+                f"Estimated Cost:\n"
+                f"  On-Demand: ${estimates['on_demand']:.2f}\n"
+                f"  Spot/Preemptible: ${estimates['spot']:.2f}\n"
+                f"  Savings with Spot: {(1 - estimates['spot']/estimates['on_demand'])*100:.0f}%\n\n"
+                f"Note: Actual costs vary by cloud provider and region."
+            )
+
+        except Exception as e:
+            return f"Failed to estimate cost: {e}"
 
     # ── Utility Methods ──────────────────────────────────────────────
 

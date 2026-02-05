@@ -978,6 +978,191 @@ TOOLS = [
             },
             "required": ["dashboard_type", "data_path", "output_path"]
         }
+    },
+
+    # ── Cloud & HPC Tools ─────────────────────────────────────────────
+    {
+        "name": "cloud_submit_job",
+        "description": (
+            "Submit a job to cloud or HPC backends for execution. "
+            "Supports AWS Batch, Google Cloud Life Sciences, Azure Batch, and SLURM clusters. "
+            "Use for compute-intensive tasks like alignment, variant calling, or large-scale analysis."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "description": "Command to execute (bash command or script)"
+                },
+                "backend": {
+                    "type": "string",
+                    "description": "Execution backend",
+                    "enum": ["aws_batch", "gcp_life_sciences", "azure_batch", "slurm", "auto"]
+                },
+                "vcpus": {
+                    "type": "integer",
+                    "description": "Number of vCPUs",
+                    "default": 4
+                },
+                "memory_gb": {
+                    "type": "number",
+                    "description": "Memory in GB",
+                    "default": 16
+                },
+                "gpu_count": {
+                    "type": "integer",
+                    "description": "Number of GPUs (0 for none)",
+                    "default": 0
+                },
+                "timeout_hours": {
+                    "type": "number",
+                    "description": "Maximum runtime in hours",
+                    "default": 24
+                },
+                "use_spot": {
+                    "type": "boolean",
+                    "description": "Use spot/preemptible instances for cost savings",
+                    "default": True
+                },
+                "container": {
+                    "type": "string",
+                    "description": "Container image to use (optional)"
+                },
+                "input_files": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Local files to stage to the job"
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Cloud storage path for outputs"
+                }
+            },
+            "required": ["command", "backend"]
+        }
+    },
+    {
+        "name": "cloud_job_status",
+        "description": (
+            "Get the status of a cloud/HPC job. "
+            "Returns job state, timing info, and any error messages."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "job_id": {
+                    "type": "string",
+                    "description": "Job identifier"
+                },
+                "backend": {
+                    "type": "string",
+                    "description": "Backend where job was submitted (optional, auto-detects)",
+                    "enum": ["aws_batch", "gcp_life_sciences", "azure_batch", "slurm"]
+                }
+            },
+            "required": ["job_id"]
+        }
+    },
+    {
+        "name": "cloud_job_logs",
+        "description": (
+            "Get execution logs for a cloud/HPC job. "
+            "Useful for debugging failed jobs or monitoring progress."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "job_id": {
+                    "type": "string",
+                    "description": "Job identifier"
+                },
+                "tail": {
+                    "type": "integer",
+                    "description": "Number of lines from end",
+                    "default": 100
+                },
+                "backend": {
+                    "type": "string",
+                    "description": "Backend where job was submitted (optional)"
+                }
+            },
+            "required": ["job_id"]
+        }
+    },
+    {
+        "name": "cloud_cancel_job",
+        "description": "Cancel a running cloud/HPC job.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "job_id": {
+                    "type": "string",
+                    "description": "Job identifier"
+                },
+                "backend": {
+                    "type": "string",
+                    "description": "Backend where job was submitted (optional)"
+                }
+            },
+            "required": ["job_id"]
+        }
+    },
+    {
+        "name": "cloud_list_jobs",
+        "description": (
+            "List jobs across configured cloud/HPC backends. "
+            "Can filter by status (pending, running, succeeded, failed)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "description": "Filter by job status",
+                    "enum": ["pending", "running", "succeeded", "failed"]
+                },
+                "backend": {
+                    "type": "string",
+                    "description": "Specific backend to query (queries all if not specified)"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of jobs to return",
+                    "default": 50
+                }
+            }
+        }
+    },
+    {
+        "name": "cloud_estimate_cost",
+        "description": (
+            "Estimate the cost of running a job on cloud backends. "
+            "Compares on-demand vs spot pricing."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "vcpus": {
+                    "type": "integer",
+                    "description": "Number of vCPUs"
+                },
+                "memory_gb": {
+                    "type": "number",
+                    "description": "Memory in GB"
+                },
+                "gpu_count": {
+                    "type": "integer",
+                    "description": "Number of GPUs",
+                    "default": 0
+                },
+                "duration_hours": {
+                    "type": "number",
+                    "description": "Expected duration in hours"
+                }
+            },
+            "required": ["vcpus", "memory_gb", "duration_hours"]
+        }
     }
 ]
 
