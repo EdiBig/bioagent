@@ -1163,6 +1163,168 @@ TOOLS = [
             },
             "required": ["vcpus", "memory_gb", "duration_hours"]
         }
+    },
+
+    # ── ML/AI Capability Tools ────────────────────────────────────────
+    {
+        "name": "predict_pathogenicity",
+        "description": (
+            "Predict variant pathogenicity using multiple scoring systems including "
+            "CADD, REVEL, and AlphaMissense. Provides consensus predictions with confidence."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "variants": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Variants in chr:pos:ref:alt format (e.g., '17:7577121:G:A')"
+                },
+                "genome_build": {
+                    "type": "string",
+                    "description": "Reference genome",
+                    "enum": ["GRCh37", "GRCh38"],
+                    "default": "GRCh38"
+                },
+                "include_cadd": {
+                    "type": "boolean",
+                    "description": "Include CADD scores",
+                    "default": True
+                },
+                "include_revel": {
+                    "type": "boolean",
+                    "description": "Include REVEL scores",
+                    "default": True
+                },
+                "include_alphamissense": {
+                    "type": "boolean",
+                    "description": "Include AlphaMissense scores",
+                    "default": True
+                }
+            },
+            "required": ["variants"]
+        }
+    },
+    {
+        "name": "predict_structure",
+        "description": (
+            "Predict or retrieve protein 3D structure using AlphaFold Database or ESMFold. "
+            "AlphaFold for known proteins (by UniProt ID), ESMFold for novel sequences."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "UniProt ID (e.g., 'P53_HUMAN') or amino acid sequence"
+                },
+                "method": {
+                    "type": "string",
+                    "description": "Prediction method",
+                    "enum": ["auto", "alphafold", "esmfold"],
+                    "default": "auto"
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Path to save PDB file (optional)"
+                }
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "predict_drug_response",
+        "description": (
+            "Predict drug sensitivity using GDSC and CCLE pharmacogenomics data. "
+            "Can predict based on cell line or genomic features like mutations."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "drug": {
+                    "type": "string",
+                    "description": "Drug name (e.g., 'Erlotinib', 'Imatinib')"
+                },
+                "cell_line": {
+                    "type": "string",
+                    "description": "Cell line name (e.g., 'A549', 'MCF7')"
+                },
+                "tissue": {
+                    "type": "string",
+                    "description": "Tissue type filter (e.g., 'lung', 'breast')"
+                },
+                "mutations": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Mutations for feature-based prediction (e.g., ['EGFR_L858R', 'KRAS_G12D'])"
+                }
+            },
+            "required": ["drug"]
+        }
+    },
+    {
+        "name": "annotate_cell_types",
+        "description": (
+            "Annotate cell types in single-cell RNA-seq data using CellTypist or scType. "
+            "Returns predicted cell types with confidence scores."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "data_path": {
+                    "type": "string",
+                    "description": "Path to expression data (CSV, h5ad, or RDS)"
+                },
+                "method": {
+                    "type": "string",
+                    "description": "Annotation method",
+                    "enum": ["celltypist", "sctype"],
+                    "default": "celltypist"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "CellTypist model",
+                    "default": "Immune_All_Low.pkl"
+                },
+                "tissue": {
+                    "type": "string",
+                    "description": "Tissue type for scType"
+                }
+            },
+            "required": ["data_path"]
+        }
+    },
+    {
+        "name": "discover_biomarkers",
+        "description": (
+            "Discover biomarkers using ensemble feature selection methods including "
+            "differential analysis, Random Forest, LASSO, and mutual information."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "data_path": {
+                    "type": "string",
+                    "description": "Path to expression/feature matrix"
+                },
+                "labels_path": {
+                    "type": "string",
+                    "description": "Path to labels/phenotype file"
+                },
+                "n_features": {
+                    "type": "integer",
+                    "description": "Number of biomarkers to select",
+                    "default": 20
+                },
+                "methods": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Feature selection methods",
+                    "default": ["differential", "random_forest", "lasso"]
+                }
+            },
+            "required": ["data_path", "labels_path"]
+        }
     }
 ]
 

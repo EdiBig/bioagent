@@ -37,6 +37,14 @@ from memory import MemoryConfig, ContextManager
 from visualization import InteractivePlotter, PublicationFigure
 from reporting import create_analysis_notebook, create_rmarkdown_report, create_dashboard
 from cloud import CloudExecutor, CloudConfig, ResourceSpec, JobStatus
+from ml import (
+    predict_variant_pathogenicity,
+    predict_structure_alphafold,
+    predict_structure_esmfold,
+    predict_drug_response,
+    annotate_cell_types,
+    discover_biomarkers,
+)
 
 
 class BioAgent:
@@ -874,6 +882,56 @@ class BioAgent:
 
             elif name == "cloud_estimate_cost":
                 return self._cloud_estimate_cost(input_data)
+
+            # ── ML/AI Tools ─────────────────────────────────────────────────
+            elif name == "predict_pathogenicity":
+                result = predict_variant_pathogenicity(
+                    variants=input_data["variants"],
+                    genome_build=input_data.get("genome_build", "GRCh38"),
+                    include_scores=input_data.get("include_scores", ["cadd", "revel"]),
+                )
+                return json.dumps(result, indent=2)
+
+            elif name == "predict_structure":
+                method = input_data.get("method", "alphafold")
+                if method == "alphafold":
+                    result = predict_structure_alphafold(
+                        sequence=input_data.get("sequence"),
+                        uniprot_id=input_data.get("uniprot_id"),
+                    )
+                else:  # esmfold
+                    result = predict_structure_esmfold(
+                        sequence=input_data["sequence"],
+                    )
+                return json.dumps(result, indent=2)
+
+            elif name == "predict_drug_response":
+                result = predict_drug_response(
+                    drug=input_data["drug"],
+                    cell_line=input_data.get("cell_line"),
+                    tissue=input_data.get("tissue"),
+                    mutations=input_data.get("mutations"),
+                )
+                return json.dumps(result, indent=2)
+
+            elif name == "annotate_cell_types":
+                result = annotate_cell_types(
+                    expression_data=input_data["expression_data"],
+                    method=input_data.get("method", "celltypist"),
+                    model=input_data.get("model", "Immune_All_Low.pkl"),
+                    tissue=input_data.get("tissue"),
+                )
+                return json.dumps(result, indent=2)
+
+            elif name == "discover_biomarkers":
+                result = discover_biomarkers(
+                    X=input_data["X"],
+                    y=input_data["y"],
+                    feature_names=input_data.get("feature_names"),
+                    n_features=input_data.get("n_features", 20),
+                    methods=input_data.get("methods"),
+                )
+                return json.dumps(result, indent=2)
 
             else:
                 return f"Unknown tool: {name}"

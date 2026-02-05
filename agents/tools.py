@@ -13,7 +13,7 @@ from definitions import TOOLS
 
 # Tool subsets for each specialist type
 SPECIALIST_TOOLS: dict[str, list[str]] = {
-    # Pipeline Engineer: Code execution, file management, workflows, visualization, cloud
+    # Pipeline Engineer: Code execution, file management, workflows, visualization, cloud, ML
     "pipeline_engineer": [
         "execute_python",
         "execute_r",
@@ -38,6 +38,12 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "cloud_cancel_job",
         "cloud_list_jobs",
         "cloud_estimate_cost",
+        # ML/AI tools
+        "predict_pathogenicity",
+        "predict_structure",
+        "predict_drug_response",
+        "annotate_cell_types",
+        "discover_biomarkers",
     ],
 
     # Literature Agent: Database queries, web search, memory
@@ -62,7 +68,7 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "memory_get_entities",
     ],
 
-    # Statistician: Code execution for stats, enrichment databases, visualization
+    # Statistician: Code execution for stats, enrichment databases, visualization, ML
     "statistician": [
         "execute_python",
         "execute_r",
@@ -79,6 +85,10 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "memory_read_artifact",
         "create_plot",
         "generate_report",
+        # ML/AI tools
+        "predict_drug_response",
+        "annotate_cell_types",
+        "discover_biomarkers",
     ],
 
     # QC Reviewer: Read-only analysis tools
@@ -90,7 +100,7 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "memory_read_artifact",
     ],
 
-    # Domain Expert: Database queries for interpretation, no code execution
+    # Domain Expert: Database queries for interpretation, no code execution, ML interpretation
     "domain_expert": [
         "query_ncbi",
         "query_ensembl",
@@ -107,6 +117,10 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "read_file",
         "memory_search",
         "memory_get_entities",
+        # ML/AI tools for interpretation
+        "predict_pathogenicity",
+        "predict_structure",
+        "predict_drug_response",
     ],
 
     # Coordinator: Limited tools - mainly for context gathering
@@ -200,6 +214,7 @@ def summarize_specialist_capabilities() -> dict[str, dict[str, Any]]:
         "memory_access": ["memory_search", "memory_save_artifact", "memory_list_artifacts", "memory_read_artifact", "memory_get_entities"],
         "visualization": ["create_plot", "generate_report", "create_dashboard"],
         "cloud_hpc": ["cloud_submit_job", "cloud_job_status", "cloud_job_logs", "cloud_cancel_job", "cloud_list_jobs", "cloud_estimate_cost"],
+        "ml_ai": ["predict_pathogenicity", "predict_structure", "predict_drug_response", "annotate_cell_types", "discover_biomarkers"],
     }
 
     for specialist, tools in SPECIALIST_TOOLS.items():
