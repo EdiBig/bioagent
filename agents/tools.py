@@ -13,7 +13,7 @@ from definitions import TOOLS
 
 # Tool subsets for each specialist type
 SPECIALIST_TOOLS: dict[str, list[str]] = {
-    # Pipeline Engineer: Code execution, file management, workflows, visualization, cloud, ML
+    # Pipeline Engineer: Code execution, file management, workflows, visualization, cloud, ML, data ingestion
     "pipeline_engineer": [
         "execute_python",
         "execute_r",
@@ -44,9 +44,16 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "predict_drug_response",
         "annotate_cell_types",
         "discover_biomarkers",
+        # Data ingestion tools
+        "ingest_file",
+        "ingest_batch",
+        "ingest_directory",
+        "list_ingested_files",
+        "get_file_profile",
+        "validate_dataset",
     ],
 
-    # Literature Agent: Database queries, web search, memory
+    # Literature Agent: Database queries, web search, memory, data awareness
     "literature_agent": [
         "query_ncbi",
         "query_ensembl",
@@ -66,9 +73,12 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "memory_list_artifacts",
         "memory_read_artifact",
         "memory_get_entities",
+        # Data awareness (read-only)
+        "list_ingested_files",
+        "get_file_profile",
     ],
 
-    # Statistician: Code execution for stats, enrichment databases, visualization, ML
+    # Statistician: Code execution for stats, enrichment databases, visualization, ML, data validation
     "statistician": [
         "execute_python",
         "execute_r",
@@ -89,15 +99,23 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "predict_drug_response",
         "annotate_cell_types",
         "discover_biomarkers",
+        # Data validation tools
+        "list_ingested_files",
+        "get_file_profile",
+        "validate_dataset",
     ],
 
-    # QC Reviewer: Read-only analysis tools
+    # QC Reviewer: Read-only analysis tools, data quality assessment
     "qc_reviewer": [
         "read_file",
         "list_files",
         "memory_search",
         "memory_list_artifacts",
         "memory_read_artifact",
+        # Data quality assessment (read-only)
+        "list_ingested_files",
+        "get_file_profile",
+        "validate_dataset",
     ],
 
     # Domain Expert: Database queries for interpretation, no code execution, ML interpretation
@@ -215,6 +233,7 @@ def summarize_specialist_capabilities() -> dict[str, dict[str, Any]]:
         "visualization": ["create_plot", "generate_report", "create_dashboard"],
         "cloud_hpc": ["cloud_submit_job", "cloud_job_status", "cloud_job_logs", "cloud_cancel_job", "cloud_list_jobs", "cloud_estimate_cost"],
         "ml_ai": ["predict_pathogenicity", "predict_structure", "predict_drug_response", "annotate_cell_types", "discover_biomarkers"],
+        "data_ingestion": ["ingest_file", "ingest_batch", "ingest_directory", "list_ingested_files", "get_file_profile", "validate_dataset"],
     }
 
     for specialist, tools in SPECIALIST_TOOLS.items():

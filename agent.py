@@ -45,6 +45,7 @@ from ml import (
     annotate_cell_types,
     discover_biomarkers,
 )
+from data_input import IngestHandler, get_ingest_tools
 
 
 class BioAgent:
@@ -95,6 +96,10 @@ class BioAgent:
         self.web_search = WebSearchClient()
         self.files = FileManager(workspace_dir=self.config.workspace_dir)
         self.workflows = WorkflowManager(workspace_dir=self.config.workspace_dir)
+
+        # Initialize file ingestion system
+        self.ingest_handler = IngestHandler(workspace_dir=self.config.workspace_dir)
+        self._log("📂 File ingestion system initialized (34 formats supported)")
 
         # Initialize memory system
         self.memory = None
@@ -319,6 +324,14 @@ class BioAgent:
                 entity_type=args.get("entity_type"),
                 include_relationships=args.get("include_relationships", False),
             ) if self.memory else "Memory system not available",
+
+            # Data Ingestion tools
+            "ingest_file": lambda args: self.ingest_handler.handle("ingest_file", args),
+            "ingest_batch": lambda args: self.ingest_handler.handle("ingest_batch", args),
+            "ingest_directory": lambda args: self.ingest_handler.handle("ingest_directory", args),
+            "list_ingested_files": lambda args: self.ingest_handler.handle("list_ingested_files", args),
+            "get_file_profile": lambda args: self.ingest_handler.handle("get_file_profile", args),
+            "validate_dataset": lambda args: self.ingest_handler.handle("validate_dataset", args),
         }
 
     def _handle_workflow_list(self, args: dict) -> str:
@@ -932,6 +945,10 @@ class BioAgent:
                     methods=input_data.get("methods"),
                 )
                 return json.dumps(result, indent=2)
+
+            # ── Data Ingestion Tools ───────────────────────────────────────
+            elif name in self.ingest_handler.handled_tools:
+                return self.ingest_handler.handle(name, input_data)
 
             else:
                 return f"Unknown tool: {name}"
