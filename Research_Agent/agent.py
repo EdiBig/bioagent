@@ -27,6 +27,7 @@ from .inter_agent.protocols import (
     AdvisoryMessage, ContextUpdate, MessageQueue,
     ResearchAgentMessageBuilder,
 )
+from .output_manager import ResearchOutputManager
 
 
 class ResearchAgent:
@@ -87,13 +88,21 @@ class ResearchAgent:
         self.output_dir = Path(self.config.output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Output manager for organized file storage
+        self.output_manager = ResearchOutputManager(
+            workspace_dir=str(self.workspace.parent),  # Use parent (bioagent workspace)
+            project_id=self.config.default_project_id or None,
+            enable_tracking=self.config.enable_workspace_tracking,
+        )
+
     # ═══════════════════════════════════════════════════════════
     # PUBLIC API
     # ═══════════════════════════════════════════════════════════
 
     def run(self, user_message: str,
             context: str = "",
-            max_turns: int = 25) -> str:
+            max_turns: int = 25,
+            analysis_title: str = "") -> str:
         """
         Process a research request through the agentic loop.
 
@@ -101,10 +110,22 @@ class ResearchAgent:
             user_message: The research question or task
             context: Optional context from other agents
             max_turns: Maximum agentic loop iterations
+            analysis_title: Optional title for the analysis session
 
         Returns:
             Final response text from the agent
         """
+        # Auto-start analysis session if enabled
+        if self.config.auto_start_analysis and not self.output_manager.analysis_id:
+            title = analysis_title or user_message[:100]
+            self.output_manager.start_analysis(
+                title=f"Research: {title}",
+                description="Literature research and analysis",
+                query=user_message,
+                tags=["research", "literature-review"],
+            )
+            self._log(f"📁 Analysis started: {self.output_manager.analysis_id}")
+
         # Build the user message with optional context
         full_message = user_message
         if context:
@@ -233,7 +254,43 @@ class ResearchAgent:
         self._session_log.clear()
         self._advisories_sent.clear()
         self._citation_manager = None
+
+        # Reset output manager for new session
+        self.output_manager = ResearchOutputManager(
+            workspace_dir=str(self.workspace.parent),
+            project_id=self.config.default_project_id or None,
+            enable_tracking=self.config.enable_workspace_tracking,
+        )
+
         self._log("🔄 Session reset")
+
+    def complete_session(self, summary: str = "") -> dict:
+        """
+        Complete the current research session.
+
+        Args:
+            summary: Summary of the research findings
+
+        Returns:
+            Summary of files created and analysis ID
+        """
+        # Save session log
+        if self._session_log:
+            self.output_manager.save_session_log(self._session_log)
+
+        # Complete analysis tracking
+        self.output_manager.complete_analysis(summary)
+
+        # Get files summary
+        files_summary = self.output_manager.get_files_summary()
+
+        self._log(f"✅ Session complete: {files_summary['total_files']} files created")
+
+        return files_summary
+
+    def get_output_summary(self) -> dict:
+        """Get summary of outputs from current session."""
+        return self.output_manager.get_files_summary()
 
     # ═══════════════════════════════════════════════════════════
     # PRIVATE: CLAUDE API
@@ -374,9 +431,8 @@ class ResearchAgent:
         """Export citations as BibTeX."""
         manager = self._get_citation_manager()
         bibtex = manager.get_bibtex()
-        # Save to file
-        path = self.output_dir / "references.bib"
-        path.write_text(bibtex)
+        # Save to organized location
+        path = self.output_manager.save_bibtex(bibtex)
         return f"BibTeX exported to {path}\n\n{bibtex}"
 
     def _handle_plan_study(self, input_data: dict) -> str:
@@ -388,9 +444,9 @@ class ResearchAgent:
             context=input_data.get("context_from_agents", ""),
         )
         markdown = plan.to_markdown()
-        # Save to file
-        path = self.output_dir / "study_plan.md"
-        path.write_text(markdown)
+        # Save to organized location
+        topic = input_data.get("research_question", "")[:50]
+        path = self.output_manager.save_study_plan(markdown, topic)
         return f"Study plan saved to {path}\n\n{markdown}"
 
     def _handle_generate_report_section(self, input_data: dict) -> str:
@@ -404,12 +460,15 @@ class ResearchAgent:
         section_title = input_data.get("section_title", section_type.title())
         content = input_data.get("content_guidance", "")
 
-        # Save section
-        path = self.workspace / f"report_section_{section_type}.md"
-        path.write_text(f"## {section_title}\n\n{content}")
+        # Save section to organized location
+        path = self.output_manager.save_report_section(
+            content=content,
+            section_type=section_type,
+            section_title=section_title,
+        )
 
         return (
-            f"Section '{section_title}' guidance registered. "
+            f"Section '{section_title}' saved to {path}. "
             f"Write the section content using the literature you've gathered, "
             f"with proper inline citations."
         )
@@ -420,8 +479,8 @@ class ResearchAgent:
         authors = input_data.get("authors", ["BioAgent Research Team"])
         citation_style = input_data.get("citation_style", "vancouver")
 
-        # Collect all section files
-        sections = sorted(self.workspace.glob("report_section_*.md"))
+        # Collect all section files from organized location
+        sections = self.output_manager.get_all_sections()
 
         report_lines = [
             f"# {title}",
@@ -429,6 +488,7 @@ class ResearchAgent:
             f"**Authors:** {', '.join(authors)}",
             f"**Date:** {datetime.now().strftime('%d %B %Y')}",
             f"**Citation Style:** {citation_style}",
+            f"**Analysis ID:** {self.output_manager.analysis_id or 'N/A'}",
             "",
             "---",
             "",
@@ -444,8 +504,14 @@ class ResearchAgent:
             report_lines.append(manager.get_reference_list())
 
         report = "\n".join(report_lines)
-        path = self.output_dir / "research_report.md"
-        path.write_text(report)
+        path = self.output_manager.save_report(report, title=title)
+
+        # Save reference list separately as well
+        if manager.count() > 0:
+            self.output_manager.save_reference_list(
+                manager.get_reference_list(),
+                style=citation_style
+            )
 
         return f"Report compiled and saved to {path} ({manager.count()} references)"
 
@@ -473,8 +539,9 @@ class ResearchAgent:
             for paper in manager.get_all_papers():
                 refs.append(f"{paper.author_et_al} ({paper.year}). {paper.title}. {paper.journal}.")
 
+        title = input_data.get("title", "Research Presentation")
         spec = PresentationSpec(
-            title=input_data.get("title", "Research Presentation"),
+            title=title,
             subtitle=input_data.get("subtitle", ""),
             slides=slides,
             color_scheme=input_data.get("color_scheme", self.config.default_color_scheme),
@@ -482,12 +549,12 @@ class ResearchAgent:
             include_references_slide=input_data.get("include_references_slide", True),
         )
 
-        output_path = str(self.output_dir / "research_presentation.pptx")
+        # Get organized output paths
+        output_path = str(self.output_manager.get_presentation_output_path(title))
         js_code = generate_pptxgenjs_code(spec, output_path)
 
-        # Save JS file
-        js_path = self.workspace / "generate_pptx.js"
-        js_path.write_text(js_code)
+        # Save JS file to organized location
+        js_path = self.output_manager.save_presentation_script(js_code, title)
 
         return (
             f"PptxGenJS code generated at {js_path}\n"
@@ -499,9 +566,9 @@ class ResearchAgent:
 
     def _handle_add_chart_slide(self, input_data: dict) -> str:
         """Add a chart slide to the presentation."""
-        # This stores chart data for later inclusion in the presentation
-        chart_path = self.workspace / f"chart_{int(time.time())}.json"
-        chart_path.write_text(json.dumps(input_data, indent=2))
+        # Save chart data to organized location
+        chart_type = input_data.get("chart_type", "chart")
+        chart_path = self.output_manager.save_chart_data(input_data, chart_type)
         return f"Chart data saved to {chart_path}. Include in generate_presentation call."
 
     def _handle_advise_agent(self, input_data: dict) -> str:

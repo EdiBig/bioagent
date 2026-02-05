@@ -64,6 +64,11 @@ class ResearchAgentConfig:
     workspace_dir: str = "/workspace/research"
     output_dir: str = "/workspace/research/outputs"
 
+    # Output organization
+    enable_workspace_tracking: bool = True  # Use BioAgent workspace system
+    default_project_id: str = ""  # Project to organize outputs under
+    auto_start_analysis: bool = True  # Auto-start analysis session on run()
+
     # Rate limiting
     pubmed_rate_limit: float = 0.35  # seconds between requests
     semantic_scholar_rate_limit: float = 0.1
@@ -77,14 +82,28 @@ class ResearchAgentConfig:
     @classmethod
     def from_env(cls) -> "ResearchAgentConfig":
         """Create config from environment variables."""
+        import sys
+
+        # Platform-appropriate default workspace
+        if sys.platform == "win32":
+            from pathlib import Path
+            default_workspace = str(Path.home() / "bioagent_workspace" / "research")
+        else:
+            default_workspace = "/workspace/research"
+
+        workspace = os.getenv("RESEARCH_WORKSPACE", default_workspace)
+
         return cls(
             anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
             ncbi_api_key=os.getenv("NCBI_API_KEY", ""),
             ncbi_email=os.getenv("NCBI_EMAIL", "bioagent@research.org"),
             semantic_scholar_api_key=os.getenv("S2_API_KEY", ""),
-            workspace_dir=os.getenv("RESEARCH_WORKSPACE", "/workspace/research"),
-            output_dir=os.getenv("RESEARCH_OUTPUT", "/workspace/research/outputs"),
+            workspace_dir=workspace,
+            output_dir=os.getenv("RESEARCH_OUTPUT", f"{workspace}/outputs"),
             default_citation_style=os.getenv("CITATION_STYLE", "vancouver"),
+            enable_workspace_tracking=os.getenv("RESEARCH_ENABLE_TRACKING", "true").lower() == "true",
+            default_project_id=os.getenv("RESEARCH_PROJECT_ID", ""),
+            auto_start_analysis=os.getenv("RESEARCH_AUTO_ANALYSIS", "true").lower() == "true",
         )
 
     @classmethod

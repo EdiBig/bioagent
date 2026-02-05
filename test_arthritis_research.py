@@ -6,6 +6,19 @@ with other BioAgent components to conduct a systematic literature review
 on genetic markers associated with arthritis.
 
 Output: Detailed research report with Harvard-style citations
+
+Output files are organized in the workspace structure:
+    workspace/projects/_research/research_outputs/
+    ├── reports/
+    │   ├── genetic_markers_arthritis_*.md
+    │   └── sections/
+    ├── references/
+    │   ├── references_*.bib
+    │   └── reference_list_harvard_*.md
+    ├── visualizations/
+    │   └── arthritis_viz_data_*.json
+    └── search_results/
+        └── search_*.json
 """
 
 import json
@@ -44,11 +57,39 @@ def run_comprehensive_research():
     2. Database queries for gene information (NCBI, UniProt)
     3. Citation management with Harvard style
     4. Report generation with proper references
+    5. Organized output file storage via ResearchOutputManager
     """
 
     print_section("GENETIC MARKERS FOR ARTHRITIS - COMPREHENSIVE RESEARCH")
     print(f"Date: {datetime.now().strftime('%d %B %Y')}")
     print(f"Analysis Type: Systematic Literature Review + Database Integration")
+
+    # ══════════════════════════════════════════════════════════════════
+    # STEP 0: INITIALIZE OUTPUT MANAGER
+    # ══════════════════════════════════════════════════════════════════
+    print_step(0, "Initializing Output Manager")
+
+    from Research_Agent.output_manager import ResearchOutputManager
+
+    # Get workspace directory
+    workspace_dir = os.getenv("BIOAGENT_WORKSPACE", str(Path.home() / "bioagent_workspace"))
+
+    # Initialize output manager with tracking
+    output_manager = ResearchOutputManager(
+        workspace_dir=workspace_dir,
+        project_id="arthritis_research",
+        enable_tracking=True,
+    )
+
+    # Start analysis session
+    analysis_id = output_manager.start_analysis(
+        title="Genetic Markers for Arthritis",
+        description="Systematic literature review of genetic markers associated with arthritis",
+        query="genetic markers arthritis GWAS",
+        tags=["arthritis", "genetics", "GWAS", "literature-review"],
+    )
+    print(f"  Analysis ID: {analysis_id}")
+    print(f"  Output directory: {output_manager.base_dir}")
 
     # ══════════════════════════════════════════════════════════════════
     # STEP 1: LITERATURE SEARCH
@@ -217,12 +258,20 @@ def run_comprehensive_research():
         gene_info=gene_info,
         citation_manager=citation_manager,
         search_results_summary=search_results_summary,
+        analysis_id=analysis_id,
     )
 
-    # Save report
-    report_path = Path(__file__).parent / "arthritis_genetic_markers_report.md"
-    report_path.write_text(report, encoding="utf-8")
+    # Save report to organized location
+    report_path = output_manager.save_report(
+        content=report,
+        title="genetic_markers_arthritis",
+    )
     print(f"\n  Report saved to: {report_path}")
+
+    # Also save a copy to project root for easy access
+    root_report_path = Path(__file__).parent / "arthritis_genetic_markers_report.md"
+    root_report_path.write_text(report, encoding="utf-8")
+    print(f"  Copy saved to: {root_report_path}")
 
     # ══════════════════════════════════════════════════════════════════
     # STEP 6: GENERATE VISUALIZATIONS DATA
@@ -230,6 +279,7 @@ def run_comprehensive_research():
     print_step(6, "Generating Visualization Data")
 
     viz_data = {
+        "analysis_id": analysis_id,
         "papers_by_year": {},
         "papers_by_category": {cat: len(papers) for cat, papers in categories.items()},
         "citation_counts": [],
@@ -250,9 +300,14 @@ def run_comprehensive_research():
             "year": paper.year,
         })
 
-    viz_path = Path(__file__).parent / "arthritis_research_viz_data.json"
-    viz_path.write_text(json.dumps(viz_data, indent=2), encoding="utf-8")
+    # Save to organized location
+    viz_path = output_manager.save_visualization_data(viz_data, name="arthritis_analysis")
     print(f"  Visualization data saved to: {viz_path}")
+
+    # Also save a copy to project root for easy access
+    root_viz_path = Path(__file__).parent / "arthritis_research_viz_data.json"
+    root_viz_path.write_text(json.dumps(viz_data, indent=2), encoding="utf-8")
+    print(f"  Copy saved to: {root_viz_path}")
 
     # Print summary visualization
     print("\n  Papers by Category:")
@@ -267,21 +322,38 @@ def run_comprehensive_research():
         print(f"    {year} | {bar} ({count})")
 
     # ══════════════════════════════════════════════════════════════════
+    # STEP 7: COMPLETE ANALYSIS AND SUMMARIZE
+    # ══════════════════════════════════════════════════════════════════
+    print_step(7, "Completing Analysis Session")
+
+    # Complete the analysis tracking
+    output_manager.complete_analysis(
+        summary=f"Analyzed {len(all_papers)} papers on genetic markers for arthritis. "
+                f"Key genes: {', '.join(key_genes[:5])}. "
+                f"Generated {citation_manager.count()} Harvard-style citations."
+    )
+
+    # Get files summary
+    files_summary = output_manager.get_files_summary()
+
+    # ══════════════════════════════════════════════════════════════════
     # FINAL SUMMARY
     # ══════════════════════════════════════════════════════════════════
     print_section("RESEARCH COMPLETE")
 
     print(f"""
-Summary:
-  - Literature sources searched: PubMed, Semantic Scholar
+Analysis Summary:
+  - Analysis ID: {analysis_id}
+  - Literature sources: PubMed, Semantic Scholar
   - Total papers analyzed: {len(all_papers)}
   - Key genes investigated: {len(key_genes)}
   - Categories identified: {len(categories)}
   - Citations generated: {citation_manager.count()} (Harvard style)
 
-Output Files:
-  - Research Report: arthritis_genetic_markers_report.md
-  - Visualization Data: arthritis_research_viz_data.json
+Output Organization:
+  - Base directory: {files_summary['base_dir']}
+  - Total files created: {files_summary['total_files']}
+  - Files by type: {json.dumps(files_summary['by_type'], indent=4) if files_summary['by_type'] else 'N/A'}
 
 Key Findings:
   - HLA-DRB1 remains the strongest genetic risk factor for RA
@@ -293,7 +365,7 @@ Key Findings:
     return report
 
 
-def generate_research_report(all_papers, categories, gene_info, citation_manager, search_results_summary):
+def generate_research_report(all_papers, categories, gene_info, citation_manager, search_results_summary, analysis_id=None):
     """Generate a comprehensive research report with Harvard citations."""
 
     # Build the report
@@ -305,6 +377,8 @@ def generate_research_report(all_papers, categories, gene_info, citation_manager
     lines.append(f"**Date:** {datetime.now().strftime('%d %B %Y')}")
     lines.append("**Analysis Type:** Systematic Literature Review with Database Integration")
     lines.append("**Citation Style:** Harvard")
+    if analysis_id:
+        lines.append(f"**Analysis ID:** {analysis_id}")
     lines.append("")
     lines.append("---")
     lines.append("")

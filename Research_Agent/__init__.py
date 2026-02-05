@@ -17,10 +17,12 @@ Usage:
 
 from .agent import ResearchAgent
 from .config import ResearchAgentConfig
+from .output_manager import ResearchOutputManager
 
 __all__ = [
     "ResearchAgent",
     "ResearchAgentConfig",
+    "ResearchOutputManager",
 ]
 
 __version__ = "1.0.0"
