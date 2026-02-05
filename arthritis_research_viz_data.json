@@ -1,0 +1,80 @@
+{
+  "papers_by_year": {
+    "2025": 2,
+    "2023": 5,
+    "2021": 2,
+    "2026": 2,
+    "2019": 3,
+    "2024": 3,
+    "2022": 2,
+    "2020": 1
+  },
+  "papers_by_category": {
+    "Rheumatoid Arthritis": 9,
+    "Osteoarthritis": 4,
+    "HLA Association": 0,
+    "Cytokine Genes": 0,
+    "General Genetic Markers": 7
+  },
+  "citation_counts": [
+    {
+      "title": "PREDICTING RESPONSES TO ANTI-TNF TREATME...",
+      "citations": 1,
+      "year": 2021
+    },
+    {
+      "title": "Investigating the shared genetic structu...",
+      "citations": 0,
+      "year": 2025
+    },
+    {
+      "title": "Effects of Human Leukocyte Antigen DRB1 ...",
+      "citations": 0,
+      "year": 2023
+    },
+    {
+      "title": "Rheumatoid arthritis susceptibility gene...",
+      "citations": 0,
+      "year": 2026
+    },
+    {
+      "title": "Multi-omics and molecular testing: A new...",
+      "citations": 0,
+      "year": 2026
+    },
+    {
+      "title": "Lack of association between matrix metal...",
+      "citations": 0,
+      "year": 2019
+    },
+    {
+      "title": "Single-cell and genome-wide Mendelian ra...",
+      "citations": 0,
+      "year": 2024
+    },
+    {
+      "title": "Correlation investigation between a sing...",
+      "citations": 0,
+      "year": 2023
+    },
+    {
+      "title": "Deciphering osteoarthritis genetics acro...",
+      "citations": 0,
+      "year": 2021
+    },
+    {
+      "title": "Identification of new therapeutic target...",
+      "citations": 0,
+      "year": 2019
+    }
+  ],
+  "key_genes": [
+    "HLA-DRB1",
+    "PTPN22",
+    "STAT4",
+    "TRAF1",
+    "GDF5",
+    "IL6",
+    "TNF"
+  ]
+}
