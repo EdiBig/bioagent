@@ -856,6 +856,128 @@ TOOLS = [
                 }
             }
         }
+    },
+    # ── Visualization Tools ────────────────────────────────────────────
+    {
+        "name": "create_plot",
+        "description": (
+            "Create publication-quality or interactive plots for bioinformatics data. "
+            "Supports: volcano plots, heatmaps, PCA plots, MA plots, enrichment bar plots, "
+            "and scatter plots. Can output to PNG, PDF, SVG, or interactive HTML. "
+            "Use journal-specific themes (Nature, Cell, Science) for publication figures."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "plot_type": {
+                    "type": "string",
+                    "description": "Type of plot to create",
+                    "enum": ["volcano", "heatmap", "pca", "ma", "enrichment_bar", "scatter"]
+                },
+                "data_path": {
+                    "type": "string",
+                    "description": "Path to input data file (CSV/TSV with results)"
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Path for output figure (extension determines format: .png, .pdf, .svg, .html)"
+                },
+                "style": {
+                    "type": "string",
+                    "description": "Journal style for publication figures",
+                    "enum": ["nature", "cell", "science", "pnas", "bioinformatics", "default"],
+                    "default": "default"
+                },
+                "interactive": {
+                    "type": "boolean",
+                    "description": "Create interactive plot (Plotly) instead of static",
+                    "default": False
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Plot title"
+                },
+                "params": {
+                    "type": "object",
+                    "description": "Additional plot-specific parameters (e.g., fc_threshold, pval_threshold for volcano)"
+                }
+            },
+            "required": ["plot_type", "data_path", "output_path"]
+        }
+    },
+    {
+        "name": "generate_report",
+        "description": (
+            "Generate automated analysis reports as Jupyter notebooks or R Markdown documents. "
+            "Creates reproducible reports with code, visualizations, and results. "
+            "Supports DESeq2 analysis reports, enrichment reports, and QC reports."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "report_type": {
+                    "type": "string",
+                    "description": "Type of report to generate",
+                    "enum": ["deseq2", "enrichment", "qc", "custom"]
+                },
+                "format": {
+                    "type": "string",
+                    "description": "Output format",
+                    "enum": ["notebook", "rmarkdown"],
+                    "default": "notebook"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Report title"
+                },
+                "data_path": {
+                    "type": "string",
+                    "description": "Path to input data file"
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Path for output report file"
+                }
+            },
+            "required": ["report_type", "title", "output_path"]
+        }
+    },
+    {
+        "name": "create_dashboard",
+        "description": (
+            "Generate interactive dashboards for exploring analysis results. "
+            "Creates Streamlit or Dash applications with interactive plots, filtering, "
+            "and data tables. Dashboards can be run locally for result exploration."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "dashboard_type": {
+                    "type": "string",
+                    "description": "Type of dashboard",
+                    "enum": ["deseq2", "expression", "enrichment"]
+                },
+                "data_path": {
+                    "type": "string",
+                    "description": "Path to input data file"
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Path for output dashboard script"
+                },
+                "framework": {
+                    "type": "string",
+                    "description": "Dashboard framework",
+                    "enum": ["streamlit", "dash"],
+                    "default": "streamlit"
+                },
+                "metadata_path": {
+                    "type": "string",
+                    "description": "Path to sample metadata (for expression dashboards)"
+                }
+            },
+            "required": ["dashboard_type", "data_path", "output_path"]
+        }
     }
 ]
 

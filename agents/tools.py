@@ -13,7 +13,7 @@ from definitions import TOOLS
 
 # Tool subsets for each specialist type
 SPECIALIST_TOOLS: dict[str, list[str]] = {
-    # Pipeline Engineer: Code execution, file management, workflows
+    # Pipeline Engineer: Code execution, file management, workflows, visualization
     "pipeline_engineer": [
         "execute_python",
         "execute_r",
@@ -29,6 +29,9 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "list_files",
         "memory_search",
         "memory_save_artifact",
+        "create_plot",
+        "generate_report",
+        "create_dashboard",
     ],
 
     # Literature Agent: Database queries, web search, memory
@@ -53,7 +56,7 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "memory_get_entities",
     ],
 
-    # Statistician: Code execution for stats, enrichment databases
+    # Statistician: Code execution for stats, enrichment databases, visualization
     "statistician": [
         "execute_python",
         "execute_r",
@@ -68,6 +71,8 @@ SPECIALIST_TOOLS: dict[str, list[str]] = {
         "memory_save_artifact",
         "memory_list_artifacts",
         "memory_read_artifact",
+        "create_plot",
+        "generate_report",
     ],
 
     # QC Reviewer: Read-only analysis tools
@@ -187,6 +192,7 @@ def summarize_specialist_capabilities() -> dict[str, dict[str, Any]]:
         "file_operations": ["read_file", "write_file", "list_files"],
         "web_search": ["web_search"],
         "memory_access": ["memory_search", "memory_save_artifact", "memory_list_artifacts", "memory_read_artifact", "memory_get_entities"],
+        "visualization": ["create_plot", "generate_report", "create_dashboard"],
     }
 
     for specialist, tools in SPECIALIST_TOOLS.items():

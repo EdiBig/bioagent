@@ -34,6 +34,8 @@ from file_manager import FileManager
 from workflows import WorkflowManager, format_engine_status
 from web_search import WebSearchClient
 from memory import MemoryConfig, ContextManager
+from visualization import InteractivePlotter, PublicationFigure
+from reporting import create_analysis_notebook, create_rmarkdown_report, create_dashboard
 
 
 class BioAgent:
@@ -843,6 +845,16 @@ class BioAgent:
                     include_relationships=input_data.get("include_relationships", False),
                 )
 
+            # ── Visualization & Reporting Tools ─────────────────────────────
+            elif name == "create_plot":
+                return self._create_plot(input_data)
+
+            elif name == "generate_report":
+                return self._generate_report(input_data)
+
+            elif name == "create_dashboard":
+                return self._create_dashboard(input_data)
+
             else:
                 return f"Unknown tool: {name}"
 
@@ -942,6 +954,238 @@ class BioAgent:
         except Exception as e:
             self._log(f"⚠️  Failed to auto-save results: {e}")
             return None
+
+    # ── Visualization & Reporting Methods ────────────────────────────
+
+    def _create_plot(self, input_data: dict) -> str:
+        """Create publication-quality or interactive plots."""
+        import pandas as pd
+
+        plot_type = input_data["plot_type"]
+        data_source = input_data["data_source"]
+        output_path = input_data.get("output_path")
+        output_format = input_data.get("output_format", "png")
+        interactive = input_data.get("interactive", False)
+        theme = input_data.get("theme")
+        title = input_data.get("title", "")
+        options = input_data.get("options", {})
+
+        # Load data
+        data_path = Path(self.config.workspace_dir) / data_source
+        if not data_path.exists():
+            return f"Data file not found: {data_source}"
+
+        try:
+            if data_path.suffix == ".csv":
+                df = pd.read_csv(data_path)
+            elif data_path.suffix in (".tsv", ".txt"):
+                df = pd.read_csv(data_path, sep="\t")
+            elif data_path.suffix == ".parquet":
+                df = pd.read_parquet(data_path)
+            else:
+                df = pd.read_csv(data_path)
+        except Exception as e:
+            return f"Failed to load data: {e}"
+
+        # Generate output path if not provided
+        if not output_path:
+            output_dir = Path(self.config.workspace_dir) / "figures"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            ext = "html" if interactive else output_format
+            output_path = str(output_dir / f"{plot_type}_{timestamp}.{ext}")
+        else:
+            output_path = str(Path(self.config.workspace_dir) / output_path)
+
+        try:
+            if interactive:
+                # Use InteractivePlotter
+                plotter = InteractivePlotter(backend="plotly")
+                fig = None
+
+                if plot_type == "volcano":
+                    fig = plotter.volcano_plot(
+                        df,
+                        fc_col=options.get("fc_col", "log2FoldChange"),
+                        pval_col=options.get("pval_col", "pvalue"),
+                        gene_col=options.get("gene_col", "gene"),
+                        fc_threshold=options.get("fc_threshold", 1.0),
+                        pval_threshold=options.get("pval_threshold", 0.05),
+                        title=title or "Volcano Plot",
+                    )
+                elif plot_type == "heatmap":
+                    fig = plotter.heatmap(
+                        df,
+                        title=title or "Heatmap",
+                    )
+                elif plot_type == "pca":
+                    fig = plotter.pca_plot(
+                        df,
+                        color_col=options.get("color_col"),
+                        title=title or "PCA Plot",
+                    )
+                elif plot_type == "scatter":
+                    fig = plotter.scatter_plot(
+                        df,
+                        x=options.get("x_col", df.columns[0]),
+                        y=options.get("y_col", df.columns[1]),
+                        color=options.get("color_col"),
+                        title=title or "Scatter Plot",
+                    )
+                elif plot_type == "bar":
+                    fig = plotter.bar_plot(
+                        df,
+                        x=options.get("x_col", df.columns[0]),
+                        y=options.get("y_col", df.columns[1]),
+                        title=title or "Bar Plot",
+                    )
+
+                if fig:
+                    fig.write_html(output_path)
+                    return f"Interactive {plot_type} plot saved to: {output_path}"
+                else:
+                    return f"Unsupported interactive plot type: {plot_type}"
+
+            else:
+                # Use PublicationFigure
+                pub_fig = PublicationFigure(style=theme or "nature")
+                fig, axes = pub_fig.create_figure(n_panels=1)
+                ax = axes[0] if isinstance(axes, list) else axes
+
+                if plot_type == "volcano":
+                    pub_fig.volcano_plot(
+                        ax,
+                        df,
+                        x_col=options.get("fc_col", "log2FoldChange"),
+                        y_col=options.get("pval_col", "pvalue"),
+                        label_col=options.get("gene_col", "gene"),
+                        fc_threshold=options.get("fc_threshold", 1.0),
+                        pval_threshold=options.get("pval_threshold", 0.05),
+                        title=title or "Volcano Plot",
+                    )
+                elif plot_type == "heatmap":
+                    # For heatmap, need numeric matrix
+                    numeric_cols = df.select_dtypes(include="number").columns
+                    matrix = df[numeric_cols]
+                    pub_fig.heatmap(
+                        ax,
+                        matrix,
+                        title=title or "Heatmap",
+                    )
+                elif plot_type == "pca":
+                    pub_fig.pca_plot(
+                        ax,
+                        df,
+                        color_col=options.get("color_col"),
+                        title=title or "PCA Plot",
+                    )
+                elif plot_type == "ma":
+                    pub_fig.ma_plot(
+                        ax,
+                        df,
+                        x_col=options.get("mean_col", "baseMean"),
+                        y_col=options.get("fc_col", "log2FoldChange"),
+                        pval_col=options.get("pval_col", "padj"),
+                        title=title or "MA Plot",
+                    )
+                elif plot_type == "enrichment":
+                    pub_fig.enrichment_barplot(
+                        ax,
+                        df,
+                        term_col=options.get("term_col", "Term"),
+                        pval_col=options.get("pval_col", "P.value"),
+                        n_terms=options.get("n_terms", 15),
+                        title=title or "Enrichment Results",
+                    )
+
+                if fig:
+                    from visualization.utils import save_figure
+                    save_figure(fig, output_path, dpi=options.get("dpi", 300))
+                    return f"Publication-quality {plot_type} plot saved to: {output_path}"
+                else:
+                    return f"Unsupported plot type: {plot_type}"
+
+        except Exception as e:
+            return f"Plot creation failed: {e}"
+
+    def _generate_report(self, input_data: dict) -> str:
+        """Generate automated analysis reports."""
+        report_type = input_data["report_type"]
+        title = input_data["title"]
+        analysis_type = input_data.get("analysis_type", "custom")
+        data_path = input_data.get("data_path")
+        output_path = input_data.get("output_path")
+        options = input_data.get("options", {})
+
+        # Generate output path if not provided
+        if not output_path:
+            output_dir = Path(self.config.workspace_dir) / "reports"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            slug = title.lower().replace(" ", "_")[:30]
+            ext = ".ipynb" if report_type == "notebook" else ".Rmd"
+            output_path = str(output_dir / f"{slug}_{timestamp}{ext}")
+        else:
+            output_path = str(Path(self.config.workspace_dir) / output_path)
+
+        # Resolve data path
+        if data_path:
+            data_path = str(Path(self.config.workspace_dir) / data_path)
+
+        try:
+            if report_type == "notebook":
+                saved_path = create_analysis_notebook(
+                    title=title,
+                    analysis_type=analysis_type,
+                    data_path=data_path,
+                    output_path=output_path,
+                    **options,
+                )
+                return f"Jupyter notebook report saved to: {saved_path}"
+
+            elif report_type == "rmarkdown":
+                saved_path = create_rmarkdown_report(
+                    title=title,
+                    report_type=analysis_type,
+                    data_path=data_path,
+                    output_path=output_path,
+                    **options,
+                )
+                return f"R Markdown report saved to: {saved_path}"
+
+            else:
+                return f"Unknown report type: {report_type}. Use 'notebook' or 'rmarkdown'."
+
+        except Exception as e:
+            return f"Report generation failed: {e}"
+
+    def _create_dashboard(self, input_data: dict) -> str:
+        """Generate interactive dashboards."""
+        dashboard_type = input_data["dashboard_type"]  # deseq2, expression, enrichment
+        data_path = input_data["data_path"]
+        output_path = input_data["output_path"]
+        framework = input_data.get("framework", "streamlit")
+        metadata_path = input_data.get("metadata_path")
+
+        # Resolve paths relative to workspace
+        data_path = str(Path(self.config.workspace_dir) / data_path)
+        output_path = str(Path(self.config.workspace_dir) / output_path)
+
+        # Ensure output directory exists
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            saved_path = create_dashboard(
+                dashboard_type=dashboard_type,
+                data_path=data_path,
+                framework=framework,
+                output_path=output_path,
+                metadata_path=metadata_path,
+            )
+            return f"{framework.capitalize()} dashboard saved to: {saved_path}. Run with: {framework} run {saved_path}"
+
+        except Exception as e:
+            return f"Dashboard creation failed: {e}"
 
     # ── Utility Methods ──────────────────────────────────────────────
 
