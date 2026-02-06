@@ -208,6 +208,49 @@ export interface DoneEventData {
   tools_used?: string[]
 }
 
+// ==================== SETTINGS TYPES ====================
+
+export type StorageLocationType = 'downloads' | 'workspace' | 'custom'
+
+export interface StoragePreferences {
+  location_type: StorageLocationType
+  custom_path: string | null
+  create_subfolders: boolean
+  subfolder_by_date: boolean
+  subfolder_by_type: boolean
+  base_path: string
+  downloads_folder: string
+  workspace_folder: string
+}
+
+export interface StoragePreferencesUpdate {
+  location_type: StorageLocationType
+  custom_path?: string | null
+  create_subfolders: boolean
+  subfolder_by_date: boolean
+  subfolder_by_type: boolean
+}
+
+export interface FolderStructurePreview {
+  base_path: string
+  location_type: string
+  subfolders: Array<{
+    name: string
+    description: string
+    example?: string
+    categories?: string[]
+  }>
+  example_path: string
+}
+
+export interface PathValidationResult {
+  valid: boolean
+  path: string
+  exists: boolean
+  writable: boolean
+  issues: string[]
+}
+
 // ==================== API CLIENT INTERFACE ====================
 
 export interface APIClient {

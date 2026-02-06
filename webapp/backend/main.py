@@ -33,7 +33,7 @@ import uvicorn
 BIOAGENT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(BIOAGENT_ROOT))
 
-from routers import chat, files, analyses
+from routers import chat, files, analyses, settings
 from models.database import init_db
 from middleware.security import (
     SecurityHeadersMiddleware,
@@ -215,6 +215,7 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(files.router, prefix="/api", tags=["files"])
 app.include_router(analyses.router, prefix="/api", tags=["analyses"])
+app.include_router(settings.router, prefix="/api", tags=["settings"])
 
 
 # ==================== ROOT ENDPOINTS ====================

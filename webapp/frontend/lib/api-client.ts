@@ -14,6 +14,10 @@ import {
   AnalysisStats,
   AnalysisType,
   AnalysisStatus,
+  StoragePreferences,
+  StoragePreferencesUpdate,
+  FolderStructurePreview,
+  PathValidationResult,
 } from './types'
 
 /**
@@ -206,6 +210,61 @@ class BioAgentAPIClient {
         throw new Error(response.data.error || 'Preview failed')
       }
       return response.data.data!
+    },
+  }
+
+  // ==================== Settings API ====================
+
+  settings = {
+    getStoragePreferences: async (): Promise<StoragePreferences> => {
+      const response: AxiosResponse<StoragePreferences> = await this.client.get(
+        '/settings/storage'
+      )
+      return response.data
+    },
+
+    updateStoragePreferences: async (
+      preferences: StoragePreferencesUpdate
+    ): Promise<StoragePreferences> => {
+      const response: AxiosResponse<StoragePreferences> = await this.client.put(
+        '/settings/storage',
+        preferences
+      )
+      return response.data
+    },
+
+    previewFolderStructure: async (
+      preferences: StoragePreferencesUpdate
+    ): Promise<FolderStructurePreview> => {
+      const params = new URLSearchParams()
+      params.append('location_type', preferences.location_type)
+      if (preferences.custom_path) {
+        params.append('custom_path', preferences.custom_path)
+      }
+      params.append('create_subfolders', String(preferences.create_subfolders))
+      params.append('subfolder_by_date', String(preferences.subfolder_by_date))
+      params.append('subfolder_by_type', String(preferences.subfolder_by_type))
+
+      const response: AxiosResponse<FolderStructurePreview> = await this.client.get(
+        `/settings/storage/preview?${params.toString()}`
+      )
+      return response.data
+    },
+
+    validateCustomPath: async (path: string): Promise<PathValidationResult> => {
+      const response: AxiosResponse<PathValidationResult> = await this.client.post(
+        '/settings/storage/validate-path',
+        null,
+        { params: { path } }
+      )
+      return response.data
+    },
+
+    getSystemPaths: async (): Promise<{ downloads_folder: string; workspace_folder: string; platform: string }> => {
+      const response: AxiosResponse<{ downloads_folder: string; workspace_folder: string; platform: string }> = await this.client.get(
+        '/settings/storage/system-paths'
+      )
+      return response.data
     },
   }
 
