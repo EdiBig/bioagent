@@ -47,7 +47,7 @@ In Render Dashboard, go to **bioagent-api** → **Environment**:
 |---------|------|--------------|
 | Backend (API) | Standard | $25 |
 | Frontend (Web) | Starter | $7 |
-| Database | Starter | $7 |
+| Database | Basic | $7 |
 | **Total** | | **~$39/month** |
 
 *Note: Starter backend ($7) may work but has only 512MB RAM. Standard ($25) with 2GB RAM is recommended for the ML models.*

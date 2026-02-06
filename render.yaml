@@ -66,6 +66,7 @@ services:
 # ============ Database ============
 databases:
   - name: bioagent-db
-    plan: starter  # starter ($7/mo) or standard ($25/mo)
+    plan: basic  # basic ($7/mo), standard ($20/mo), or pro ($95/mo)
     region: oregon
-    postgresMajorVersion: "15"
+    databaseName: bioagent
+    user: bioagent
