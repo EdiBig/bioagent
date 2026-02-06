@@ -76,17 +76,21 @@ export default function ChatLayout({
 
   // Delete chat
   const deleteChat = async (id: number, e: React.MouseEvent) => {
+    // Prevent event bubbling to parent (which would navigate)
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm('Delete this chat?')) return
 
-    // Optimistic update - remove from UI immediately
-    setSessions(prev => prev.filter(s => s.id !== id))
+    // Confirm deletion
+    const confirmed = window.confirm('Delete this chat?')
+    if (!confirmed) return
 
-    // Navigate away if deleting current chat
+    // Navigate away if deleting current chat (do this first)
     if (currentSessionId === String(id)) {
       router.push('/chat')
     }
+
+    // Optimistic update - remove from UI immediately
+    setSessions(prev => prev.filter(s => s.id !== id))
 
     try {
       const response = await fetch(`${API_URL}/chat/sessions/${id}`, {
@@ -95,15 +99,19 @@ export default function ChatLayout({
           'Content-Type': 'application/json'
         }
       })
+
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Delete failed:', response.status, errorText)
         // Revert on error
-        console.error('Delete failed:', response.status)
         loadSessions()
+        alert('Failed to delete chat. Please try again.')
       }
     } catch (err) {
       console.error('Failed to delete chat:', err)
       // Revert on error
       loadSessions()
+      alert('Failed to delete chat. Please try again.')
     }
   }
 
@@ -244,12 +252,16 @@ export default function ChatLayout({
                       )}
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions - always visible for better UX */}
                     {editingId !== session.id && (
-                      <div className="absolute right-2 hidden group-hover:flex items-center gap-1">
+                      <div className="absolute right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={(e) => startRename(session, e)}
-                          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            startRename(session, e)
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
                           title="Rename"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,8 +269,12 @@ export default function ChatLayout({
                           </svg>
                         </button>
                         <button
-                          onClick={(e) => deleteChat(session.id, e)}
-                          className="p-1 text-gray-400 hover:text-red-500 rounded"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            deleteChat(session.id, e)
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                           title="Delete"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
