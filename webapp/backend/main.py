@@ -43,6 +43,19 @@ from middleware.security import (
 from middleware.logging import RequestLoggingMiddleware
 
 
+# Consolidated workspace directory (all outputs in one place)
+def _get_workspace_dir() -> Path:
+    """Get workspace directory, platform-aware."""
+    if sys.platform == "win32":
+        default = Path.home() / "bioagent_workspace"
+    else:
+        default = Path("/workspace")
+    return Path(os.getenv("BIOAGENT_WORKSPACE", str(default)))
+
+WORKSPACE_DIR = _get_workspace_dir()
+UPLOAD_DIR = WORKSPACE_DIR / "uploads"
+
+
 # Configuration from environment
 class Config:
     """Application configuration from environment variables"""
@@ -67,9 +80,12 @@ async def lifespan(app: FastAPI):
     await init_db()
     print("Database initialized")
 
-    # Create required directories
-    os.makedirs("uploads", exist_ok=True)
+    # Create required directories (consolidated in workspace)
+    WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     os.makedirs("logs", exist_ok=True)
+    print(f"📁 Workspace: {WORKSPACE_DIR}")
+    print(f"📁 Uploads: {UPLOAD_DIR}")
 
     # Initialize agent service and show mode
     try:
@@ -189,9 +205,9 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 # ==================== STATIC FILES ====================
 
-# Mount uploads directory with validation
-os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# Mount uploads directory (inside workspace) with validation
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 
 # ==================== ROUTERS ====================

@@ -34,9 +34,7 @@ services:
       - key: BIOAGENT_FAST_MODE
         value: "true"  # Recommended for cloud to reduce memory
       - key: BIOAGENT_WORKSPACE
-        value: /tmp/workspace
-      - key: UPLOAD_DIR
-        value: /tmp/uploads
+        value: /data/workspace  # Persistent storage (uploads, results, memory all here)
       - key: ALLOWED_ORIGINS
         value: https://bioagent-web.onrender.com,http://localhost:3000
     disk:

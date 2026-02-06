@@ -35,9 +35,23 @@ from middleware.security import validate_file_extension, ALLOWED_FILE_EXTENSIONS
 router = APIRouter(prefix="/files")
 
 
-# Configuration
-UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploads"))
+# Configuration - uploads are stored inside the workspace directory
+def _get_workspace_dir() -> Path:
+    """Get workspace directory, platform-aware."""
+    import sys
+    if sys.platform == "win32":
+        default = Path.home() / "bioagent_workspace"
+    else:
+        default = Path("/workspace")
+    return Path(os.getenv("BIOAGENT_WORKSPACE", str(default)))
+
+WORKSPACE_DIR = _get_workspace_dir()
+UPLOAD_DIR = WORKSPACE_DIR / "uploads"  # Consolidated: uploads inside workspace
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE_MB", "500")) * 1024 * 1024  # Convert to bytes
+
+# Ensure directories exist
+WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ==================== HELPER FUNCTIONS ====================

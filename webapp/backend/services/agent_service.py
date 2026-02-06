@@ -18,8 +18,17 @@ from datetime import datetime
 BIOAGENT_ROOT = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(BIOAGENT_ROOT))
 
-# Upload directory for user files
-UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploads"))
+# Upload directory for user files - consolidated inside workspace
+def _get_workspace_dir() -> Path:
+    """Get workspace directory, platform-aware."""
+    if sys.platform == "win32":
+        default = Path.home() / "bioagent_workspace"
+    else:
+        default = Path("/workspace")
+    return Path(os.getenv("BIOAGENT_WORKSPACE", str(default)))
+
+WORKSPACE_DIR = _get_workspace_dir()
+UPLOAD_DIR = WORKSPACE_DIR / "uploads"  # Uploads inside workspace
 
 from services.streaming import (
     StreamEvent,

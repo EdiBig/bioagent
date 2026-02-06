@@ -28,6 +28,8 @@ In Render Dashboard, go to **bioagent-api** → **Environment**:
 | `NCBI_API_KEY` | Your NCBI key | Optional |
 | `NCBI_EMAIL` | your@email.com | Recommended |
 
+**Note:** Storage is consolidated - all uploads, results, and analysis data go to `BIOAGENT_WORKSPACE` (default: `/data/workspace` on Render's persistent disk).
+
 ### 5. Wait for Deployment
 - Backend: ~5-10 minutes (installs ML dependencies)
 - Frontend: ~3-5 minutes

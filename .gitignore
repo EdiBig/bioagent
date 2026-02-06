@@ -50,8 +50,8 @@ Thumbs.db
 *.db-wal
 *.db-shm
 
-# Uploaded files and workspace data
-webapp/backend/uploads/
+# Workspace data (consolidated storage)
+workspace/uploads/
 workspace/ingested/
 workspace/memory/
 workspace/results/
@@ -60,6 +60,9 @@ workspace/registry/
 workspace/data/
 workspace/*.tsv
 workspace/*.csv
+
+# Legacy upload location (now consolidated in workspace/uploads/)
+webapp/backend/uploads/
 
 # Node.js
 node_modules/
