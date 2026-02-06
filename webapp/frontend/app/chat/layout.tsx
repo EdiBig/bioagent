@@ -84,14 +84,7 @@ export default function ChatLayout({
     const confirmed = window.confirm('Delete this chat?')
     if (!confirmed) return
 
-    // Navigate away if deleting current chat (do this first)
-    if (currentSessionId === String(id)) {
-      router.push('/chat')
-    }
-
-    // Optimistic update - remove from UI immediately
-    setSessions(prev => prev.filter(s => s.id !== id))
-
+    // Make DELETE request FIRST and wait for it
     try {
       const response = await fetch(`${API_URL}/chat/sessions/${id}`, {
         method: 'DELETE',
@@ -103,14 +96,19 @@ export default function ChatLayout({
       if (!response.ok) {
         const errorText = await response.text()
         console.error('Delete failed:', response.status, errorText)
-        // Revert on error
-        loadSessions()
         alert('Failed to delete chat. Please try again.')
+        return
+      }
+
+      // SUCCESS - now update UI
+      setSessions(prev => prev.filter(s => s.id !== id))
+
+      // Navigate away if we deleted the current chat
+      if (currentSessionId === String(id)) {
+        router.push('/chat')
       }
     } catch (err) {
       console.error('Failed to delete chat:', err)
-      // Revert on error
-      loadSessions()
       alert('Failed to delete chat. Please try again.')
     }
   }
