@@ -41,3 +41,38 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Uploaded files and workspace data
+webapp/backend/uploads/
+workspace/ingested/
+workspace/memory/
+workspace/results/
+workspace/projects/
+workspace/registry/
+workspace/data/
+workspace/*.tsv
+workspace/*.csv
+
+# Node.js
+node_modules/
+.next/
+out/
+.npm
+
+# Next.js
+webapp/frontend/.next/
+webapp/frontend/node_modules/
+
+# Windows artifacts
+nul
+
+# Screenshots (optional - remove this line to include them)
+screenshots/

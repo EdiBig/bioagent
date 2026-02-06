@@ -1,0 +1,182 @@
+version: '3.8'
+
+# BioAgent Web Application Docker Compose Configuration
+# Includes all required services: PostgreSQL, Redis, MinIO, Backend, Frontend
+
+services:
+  # ==================== DATABASE ====================
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: bioagent-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-bioagent}
+      POSTGRES_USER: ${DB_USER:-bioagent}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-bioagent_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bioagent} -d ${DB_NAME:-bioagent}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - bioagent-network
+
+  # ==================== CACHE/QUEUE ====================
+  redis:
+    image: redis:7-alpine
+    container_name: bioagent-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - bioagent-network
+
+  # ==================== OBJECT STORAGE ====================
+  minio:
+    image: minio/minio:latest
+    container_name: bioagent-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-bioagent}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-bioagent_secret_key}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - bioagent-network
+
+  # ==================== BACKEND API ====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: bioagent-backend
+    environment:
+      # Database
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-bioagent}:${DB_PASSWORD:-bioagent_password}@postgres:5432/${DB_NAME:-bioagent}
+      DB_ECHO: ${DB_ECHO:-false}
+
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+
+      # MinIO
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-bioagent}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-bioagent_secret_key}
+      MINIO_BUCKET: ${MINIO_BUCKET:-bioagent-files}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+
+      # API Configuration
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+
+      # Rate Limiting
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+
+      # File Upload
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-500}
+      UPLOAD_DIR: /app/uploads
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+      # Mount the main bioagent code for integration
+      - ../:/bioagent:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - bioagent-network
+
+  # ==================== BACKGROUND WORKER ====================
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: bioagent-celery
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-bioagent}:${DB_PASSWORD:-bioagent_password}@postgres:5432/${DB_NAME:-bioagent}
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-bioagent}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-bioagent_secret_key}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+      - ../:/bioagent:ro
+    depends_on:
+      - redis
+      - postgres
+      - backend
+    command: celery -A workers.celery_app worker --loglevel=info
+    restart: unless-stopped
+    networks:
+      - bioagent-network
+
+  # ==================== FRONTEND ====================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bioagent-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - bioagent-network
+
+# ==================== VOLUMES ====================
+volumes:
+  postgres_data:
+    name: bioagent_postgres_data
+  redis_data:
+    name: bioagent_redis_data
+  minio_data:
+    name: bioagent_minio_data
+
+# ==================== NETWORKS ====================
+networks:
+  bioagent-network:
+    name: bioagent-network
+    driver: bridge

@@ -139,6 +139,52 @@ python run.py --query "Submit a variant calling job to AWS Batch"
 
 ---
 
+## Web Application
+
+BioAgent includes a production-ready web interface for browser-based access.
+
+### Features
+
+- **Real-time Streaming**: Server-Sent Events (SSE) for live tool execution feedback
+- **File Management**: Upload, browse, and manage bioinformatics files
+- **Chat Interface**: Conversational interface with message history
+- **Analysis Tracking**: Track and manage analysis sessions
+
+### Quick Start (Web App)
+
+```bash
+cd webapp
+
+# Configure environment
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY
+
+# Start with Docker
+./setup.sh
+
+# Or use Docker Compose directly
+docker compose up -d
+```
+
+Access the application:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+
+### Security
+
+The web application includes:
+- Rate limiting (configurable per IP)
+- CORS protection with configurable origins
+- Security headers (CSP, HSTS, X-Frame-Options)
+- Input validation and sanitization
+- File type whitelisting
+- Audit logging
+
+See `webapp/README.md` for detailed documentation.
+
+---
+
 ## Architecture
 
 ```
@@ -1541,6 +1587,21 @@ bioagent/
 │   ├── __init__.py
 │   ├── test_research_agent.py
 │   └── test_arthritis_research.py
+│
+├── # Web Application
+├── webapp/
+│   ├── backend/              # FastAPI backend
+│   │   ├── main.py          # Application entry
+│   │   ├── routers/         # API endpoints
+│   │   ├── services/        # Agent integration
+│   │   ├── models/          # Database models
+│   │   └── middleware/      # Security middleware
+│   ├── frontend/            # Next.js frontend
+│   │   ├── app/            # Pages and layouts
+│   │   ├── components/     # React components
+│   │   └── lib/            # API client
+│   ├── docker-compose.yml   # Full stack deployment
+│   └── setup.sh            # Setup script
 │
 ├── requirements.txt          # Python dependencies
 ├── Dockerfile.biotools       # Docker image for tools

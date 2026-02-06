@@ -1,0 +1,71 @@
+# Render Blueprint - BioAgent Deployment
+# Deploy with: Connect GitHub repo to Render, it auto-detects this file
+
+services:
+  # ============ Backend API ============
+  - type: web
+    name: bioagent-api
+    runtime: python
+    region: oregon  # or frankfurt, singapore, ohio
+    plan: standard  # standard ($25/mo) recommended for 2GB RAM (sentence-transformers)
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      pip install -r webapp/backend/requirements.txt
+    startCommand: |
+      cd webapp/backend
+      uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: ENVIRONMENT
+        value: production
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: NCBI_API_KEY
+        sync: false
+      - key: NCBI_EMAIL
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bioagent-db
+          property: connectionString
+      - key: BIOAGENT_FAST_MODE
+        value: "true"  # Recommended for cloud to reduce memory
+      - key: BIOAGENT_WORKSPACE
+        value: /tmp/workspace
+      - key: UPLOAD_DIR
+        value: /tmp/uploads
+      - key: ALLOWED_ORIGINS
+        value: https://bioagent-web.onrender.com,http://localhost:3000
+    disk:
+      name: bioagent-storage
+      mountPath: /data
+      sizeGB: 10
+
+  # ============ Frontend ============
+  - type: web
+    name: bioagent-web
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: |
+      cd webapp/frontend
+      npm install
+      npm run build
+    startCommand: |
+      cd webapp/frontend
+      npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NEXT_PUBLIC_API_URL
+        value: https://bioagent-api.onrender.com/api
+
+# ============ Database ============
+databases:
+  - name: bioagent-db
+    plan: starter  # starter ($7/mo) or standard ($25/mo)
+    region: oregon
+    postgresMajorVersion: "15"

@@ -1,19 +1,24 @@
 # Core
 anthropic>=0.40.0
+python-dotenv>=1.0.0
 
-# Bioinformatics (optional — install what you need)
-# biopython>=1.83
-# pysam>=0.22.0
-# scanpy>=1.10.0
-# anndata>=0.10.0
+# Bioinformatics
+biopython>=1.83
+# pysam>=0.22.0  # Optional: BAM/SAM support
+# scanpy>=1.10.0  # Optional: single-cell analysis
+# anndata>=0.10.0  # Optional: annotated data
 
 # Data science
-# numpy>=1.26.0
-# pandas>=2.2.0
-# scipy>=1.12.0
-# scikit-learn>=1.4.0
-# matplotlib>=3.8.0
-# seaborn>=0.13.0
+numpy>=1.26.0
+pandas>=2.2.0
+scipy>=1.12.0
+scikit-learn>=1.4.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
 
-# Utilities
-# python-dotenv>=1.0.0  # For .env file loading (optional, basic loader included)
+# Memory system
+sentence-transformers>=2.2.0
+
+# HTTP client
+httpx>=0.26.0
+aiofiles>=23.2.1

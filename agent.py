@@ -528,11 +528,16 @@ class BioAgent:
 
                 return final_text
 
-        # Max rounds exceeded
+        # Max rounds exceeded - provide helpful guidance
         self._log(f"⚠️  Max tool rounds ({self.config.max_tool_rounds}) exceeded")
         max_rounds_msg = (
-            "I've reached the maximum number of tool-use iterations. "
-            "Here's what I've done so far — you may want to continue from here."
+            "## Analysis Progress Update\n\n"
+            "I've completed multiple analysis steps and have gathered partial results above. "
+            "To continue, you can:\n\n"
+            "1. **Ask a specific follow-up question** about the results shown\n"
+            "2. **Request a specific analysis** like 'run differential expression' or 'show statistics'\n"
+            "3. **Continue from here** by asking me to proceed with the next step\n\n"
+            "💡 **Tip**: Specific questions work better than broad ones like 'analyze everything'."
         )
 
         # Auto-save even on max rounds

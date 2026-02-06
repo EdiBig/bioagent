@@ -52,12 +52,13 @@ class Config:
     max_execution_timeout: int = 600
 
     # ── Agent Behaviour ──────────────────────────────────────────────
-    max_tool_rounds: int = 25  # Max agentic loop iterations
+    max_tool_rounds: int = 50  # Max agentic loop iterations (increased for complex analyses)
     verbose: bool = True  # Print tool calls and results
     log_file: str | None = None  # Optional file to log interactions
     enable_extended_thinking: bool = False  # Use extended thinking for complex queries
     auto_save_results: bool = True  # Automatically save query results to files
     results_dir: str = "results"  # Subdirectory for auto-saved results
+    fast_mode: bool = False  # Fast mode: disables multi-agent, memory, uses fewer rounds
 
     # ── Memory System ─────────────────────────────────────────────────
     enable_memory: bool = True  # Master toggle for memory subsystem
@@ -96,12 +97,13 @@ class Config:
             use_docker=os.getenv("BIOAGENT_USE_DOCKER", "false").lower() == "true",
             docker_image=os.getenv("BIOAGENT_DOCKER_IMAGE", "bioagent-tools:latest"),
             max_execution_timeout=int(os.getenv("BIOAGENT_TIMEOUT", "600")),
-            max_tool_rounds=int(os.getenv("BIOAGENT_MAX_ROUNDS", "25")),
+            max_tool_rounds=int(os.getenv("BIOAGENT_MAX_ROUNDS", "50")),
             verbose=os.getenv("BIOAGENT_VERBOSE", "true").lower() == "true",
             log_file=os.getenv("BIOAGENT_LOG_FILE", None),
             enable_extended_thinking=os.getenv("BIOAGENT_EXTENDED_THINKING", "false").lower() == "true",
             auto_save_results=os.getenv("BIOAGENT_AUTO_SAVE", "true").lower() == "true",
             results_dir=os.getenv("BIOAGENT_RESULTS_DIR", "results"),
+            fast_mode=os.getenv("BIOAGENT_FAST_MODE", "false").lower() == "true",
             # Memory system
             enable_memory=os.getenv("BIOAGENT_ENABLE_MEMORY", "true").lower() == "true",
             enable_rag=os.getenv("BIOAGENT_ENABLE_RAG", "true").lower() == "true",
@@ -122,6 +124,38 @@ class Config:
             default_project=os.getenv("BIOAGENT_DEFAULT_PROJECT", ""),
             analysis_id_prefix=os.getenv("BIOAGENT_ANALYSIS_PREFIX", "BIO"),
         )
+
+    def apply_fast_mode(self) -> "Config":
+        """
+        Apply fast mode optimizations for quicker responses.
+
+        Fast mode:
+        - Disables multi-agent coordination (single agent)
+        - Disables memory system (RAG, summaries, knowledge graph)
+        - Reduces max tool rounds to 15
+        - Keeps artifacts enabled for file tracking
+
+        Returns self for chaining.
+        """
+        if not self.fast_mode:
+            return self
+
+        # Disable multi-agent
+        self.enable_multi_agent = False
+
+        # Disable memory overhead
+        self.enable_memory = False
+        self.enable_rag = False
+        self.enable_summaries = False
+        self.enable_knowledge_graph = False
+
+        # Keep artifacts for file tracking
+        self.enable_artifacts = True
+
+        # Reduce tool rounds for faster completion
+        self.max_tool_rounds = 15
+
+        return self
 
     def validate(self) -> list[str]:
         """Validate configuration, return list of issues."""

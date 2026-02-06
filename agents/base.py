@@ -103,7 +103,7 @@ class BaseAgent(ABC):
         model: str,
         tool_handlers: dict[str, callable],
         memory=None,
-        max_tool_rounds: int = 15,
+        max_tool_rounds: int = 30,
         verbose: bool = True,
     ):
         """
@@ -257,8 +257,16 @@ class BaseAgent(ABC):
                 # Unexpected stop reason
                 return self._extract_text(response)
 
-        # Max rounds exceeded
-        return "Maximum tool rounds exceeded. Partial results may be available."
+        # Max rounds exceeded - provide helpful guidance
+        return (
+            "## Analysis Progress Update\n\n"
+            "I've completed multiple analysis steps and gathered partial results above. "
+            "To continue, you can:\n\n"
+            "1. **Ask a specific follow-up question** about the results shown\n"
+            "2. **Request a specific analysis** like 'run differential expression' or 'show statistics'\n"
+            "3. **Continue from here** by asking me to proceed with the next step\n\n"
+            "💡 **Tip**: Specific questions work better than broad ones like 'analyze everything'."
+        )
 
     def _process_tool_calls(self, response) -> list[dict]:
         """Process tool calls in the response."""
