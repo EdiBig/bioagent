@@ -1,6 +1,12 @@
 # BioAgent
 
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://bioagent-web.onrender.com)
+[![API](https://img.shields.io/badge/api-docs-blue)](https://bioagent-api.onrender.com/docs)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 An AI-powered bioinformatics assistant that combines Claude's reasoning capabilities with computational tools for expert-level genomics, transcriptomics, proteomics, and biological data analysis.
+
+**Live Demo**: [bioagent-web.onrender.com](https://bioagent-web.onrender.com)
 
 ## Table of Contents
 
@@ -21,6 +27,7 @@ An AI-powered bioinformatics assistant that combines Claude's reasoning capabili
 - [Examples](#examples)
 - [Extending BioAgent](#extending-bioagent)
 - [Troubleshooting](#troubleshooting)
+- [Cloud Deployment](#cloud-deployment)
 
 ---
 
@@ -1027,6 +1034,11 @@ NCBI_EMAIL=your.email@example.com
 NCBI_API_KEY=your_ncbi_key
 
 # =============================================================================
+# PERFORMANCE MODE
+# =============================================================================
+BIOAGENT_FAST_MODE=false  # true = single agent, no memory, faster responses
+
+# =============================================================================
 # MODEL SETTINGS
 # =============================================================================
 BIOAGENT_MODEL=claude-sonnet-4-20250514
@@ -1112,6 +1124,7 @@ BIOAGENT_SLURM_PARTITION=gpu
 | `ANTHROPIC_API_KEY` | Yes | - | Anthropic API key |
 | `NCBI_EMAIL` | Recommended | - | Email for NCBI E-utilities |
 | `NCBI_API_KEY` | No | - | NCBI API key (higher rate limits) |
+| `BIOAGENT_FAST_MODE` | No | `false` | Fast mode: single agent, no memory |
 | `BIOAGENT_MODEL` | No | `claude-sonnet-4-20250514` | Default model |
 | `BIOAGENT_MODEL_COMPLEX` | No | `claude-opus-4-0-20250115` | Model for complex queries |
 | `BIOAGENT_WORKSPACE` | No | `~/bioagent_workspace` | Working directory |
@@ -1442,6 +1455,50 @@ Solution: Configure AWS CLI or set environment variables.
 - **Documentation**: See `docs/` directory
 - **Issues**: [GitHub Issues](https://github.com/EdiBig/bioagent/issues)
 - **Cloud Setup**: See `docs/cloud-setup.md`
+
+---
+
+## Cloud Deployment
+
+BioAgent can be deployed to cloud platforms for team access. A production deployment is available at **[bioagent-web.onrender.com](https://bioagent-web.onrender.com)**.
+
+### Render (Recommended)
+
+One-click deployment using Render Blueprint:
+
+1. **Fork/Clone** the repository to your GitHub
+2. **Create account** at [render.com](https://render.com) (sign up with GitHub)
+3. **Deploy Blueprint**: Click **New** → **Blueprint** → Connect your repo
+4. **Set secrets** in Render Dashboard → `bioagent-api` → Environment:
+   - `ANTHROPIC_API_KEY` (required)
+   - `NCBI_API_KEY` (recommended)
+   - `NCBI_EMAIL` (recommended)
+
+| Service | Plan | Cost |
+|---------|------|------|
+| Backend API | Standard (2GB RAM) | $25/mo |
+| Frontend | Starter | $7/mo |
+| Database | Free or Basic | $0-7/mo |
+| **Total** | | **~$32-39/mo** |
+
+See [DEPLOY_RENDER.md](DEPLOY_RENDER.md) for detailed instructions.
+
+### Performance Modes
+
+BioAgent supports two performance modes for different deployment scenarios:
+
+| Mode | Multi-Agent | Memory System | Tool Rounds | Use Case |
+|------|-------------|---------------|-------------|----------|
+| **Full Mode** | Yes (6 specialists) | Yes (vectors, graph, artifacts) | 30 | Local dev, powerful servers |
+| **Fast Mode** | No (single agent) | Minimal (artifacts only) | 15 | Cloud, low-memory, quick responses |
+
+Enable Fast Mode:
+```bash
+# In .env file
+BIOAGENT_FAST_MODE=true
+```
+
+Fast Mode is recommended for cloud deployments to reduce memory usage and cold start times.
 
 ---
 
