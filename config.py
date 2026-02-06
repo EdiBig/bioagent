@@ -36,8 +36,8 @@ class Config:
 
     # ── Anthropic API ────────────────────────────────────────────────
     anthropic_api_key: str = ""
-    model: str = "claude-sonnet-4-20250514"  # Sonnet for routine work
-    model_complex: str = "claude-opus-4-0-20250115"  # Opus for complex interpretation
+    model: str = "claude-sonnet-4-5-20250929"  # Sonnet 4.5 for routine work
+    model_complex: str = "claude-opus-4-6"  # Opus 4.6 for complex/agentic tasks
     max_tokens: int = 8192
     temperature: float = 0.0  # Deterministic for reproducibility
 
@@ -72,9 +72,9 @@ class Config:
     enable_multi_agent: bool = False  # Master toggle for multi-agent mode
     multi_agent_parallel: bool = True  # Allow parallel specialist execution
     multi_agent_max_specialists: int = 3  # Max specialists per query
-    coordinator_model: str = "claude-sonnet-4-20250514"  # Model for coordinator
-    specialist_model: str = "claude-sonnet-4-20250514"  # Model for specialists
-    qc_model: str = "claude-haiku-3-5-20241022"  # Lighter model for QC reviewer
+    coordinator_model: str = "claude-opus-4-6"  # Opus 4.6 for coordinator (agentic)
+    specialist_model: str = "claude-sonnet-4-5-20250929"  # Sonnet 4.5 for specialists
+    qc_model: str = "claude-haiku-4-5-20251001"  # Haiku 4.5 for QC reviewer
 
     # ── Workspace & Analysis Tracking ────────────────────────────────────
     enable_analysis_tracking: bool = True  # Master toggle for analysis tracking
@@ -87,8 +87,8 @@ class Config:
         """Load configuration from environment variables."""
         return cls(
             anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
-            model=os.getenv("BIOAGENT_MODEL", "claude-sonnet-4-20250514"),
-            model_complex=os.getenv("BIOAGENT_MODEL_COMPLEX", "claude-opus-4-0-20250115"),
+            model=os.getenv("BIOAGENT_MODEL", "claude-sonnet-4-5-20250929"),
+            model_complex=os.getenv("BIOAGENT_MODEL_COMPLEX", "claude-opus-4-6"),
             max_tokens=int(os.getenv("BIOAGENT_MAX_TOKENS", "8192")),
             temperature=float(os.getenv("BIOAGENT_TEMPERATURE", "0.0")),
             ncbi_api_key=os.getenv("NCBI_API_KEY", ""),
@@ -115,9 +115,9 @@ class Config:
             enable_multi_agent=os.getenv("BIOAGENT_MULTI_AGENT", "false").lower() == "true",
             multi_agent_parallel=os.getenv("BIOAGENT_MULTI_AGENT_PARALLEL", "true").lower() == "true",
             multi_agent_max_specialists=int(os.getenv("BIOAGENT_MAX_SPECIALISTS", "3")),
-            coordinator_model=os.getenv("BIOAGENT_COORDINATOR_MODEL", "claude-sonnet-4-20250514"),
-            specialist_model=os.getenv("BIOAGENT_SPECIALIST_MODEL", "claude-sonnet-4-20250514"),
-            qc_model=os.getenv("BIOAGENT_QC_MODEL", "claude-haiku-3-5-20241022"),
+            coordinator_model=os.getenv("BIOAGENT_COORDINATOR_MODEL", "claude-opus-4-6"),
+            specialist_model=os.getenv("BIOAGENT_SPECIALIST_MODEL", "claude-sonnet-4-5-20250929"),
+            qc_model=os.getenv("BIOAGENT_QC_MODEL", "claude-haiku-4-5-20251001"),
             # Workspace & Analysis Tracking
             enable_analysis_tracking=os.getenv("BIOAGENT_ENABLE_TRACKING", "true").lower() == "true",
             auto_create_analysis=os.getenv("BIOAGENT_AUTO_CREATE_ANALYSIS", "false").lower() == "true",

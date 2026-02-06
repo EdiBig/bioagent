@@ -1041,8 +1041,8 @@ BIOAGENT_FAST_MODE=false  # true = single agent, no memory, faster responses
 # =============================================================================
 # MODEL SETTINGS
 # =============================================================================
-BIOAGENT_MODEL=claude-sonnet-4-20250514
-BIOAGENT_MODEL_COMPLEX=claude-opus-4-0-20250115
+BIOAGENT_MODEL=claude-sonnet-4-5-20250929
+BIOAGENT_MODEL_COMPLEX=claude-opus-4-6
 BIOAGENT_MAX_ROUNDS=25
 
 # =============================================================================
@@ -1066,8 +1066,8 @@ BIOAGENT_DEFAULT_PROJECT=
 # =============================================================================
 BIOAGENT_MULTI_AGENT=false
 BIOAGENT_MULTI_AGENT_PARALLEL=true
-BIOAGENT_COORDINATOR_MODEL=claude-sonnet-4-20250514
-BIOAGENT_SPECIALIST_MODEL=claude-sonnet-4-20250514
+BIOAGENT_COORDINATOR_MODEL=claude-opus-4-6
+BIOAGENT_SPECIALIST_MODEL=claude-sonnet-4-5-20250929
 
 # =============================================================================
 # MEMORY SETTINGS
@@ -1125,8 +1125,8 @@ BIOAGENT_SLURM_PARTITION=gpu
 | `NCBI_EMAIL` | Recommended | - | Email for NCBI E-utilities |
 | `NCBI_API_KEY` | No | - | NCBI API key (higher rate limits) |
 | `BIOAGENT_FAST_MODE` | No | `false` | Fast mode: single agent, no memory |
-| `BIOAGENT_MODEL` | No | `claude-sonnet-4-20250514` | Default model |
-| `BIOAGENT_MODEL_COMPLEX` | No | `claude-opus-4-0-20250115` | Model for complex queries |
+| `BIOAGENT_MODEL` | No | `claude-sonnet-4-5-20250929` | Default model (Sonnet 4.5) |
+| `BIOAGENT_MODEL_COMPLEX` | No | `claude-opus-4-6` | Model for complex/agentic tasks (Opus 4.6) |
 | `BIOAGENT_WORKSPACE` | No | `~/bioagent_workspace` | Working directory |
 | `BIOAGENT_VERBOSE` | No | `true` | Show tool calls |
 | `BIOAGENT_AUTO_SAVE` | No | `true` | Auto-save results |
