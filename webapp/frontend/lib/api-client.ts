@@ -17,7 +17,7 @@ import {
   StoragePreferences,
   StoragePreferencesUpdate,
   FolderStructurePreview,
-  PathValidationResult,
+  StorageInfo,
 } from './types'
 
 /**
@@ -237,10 +237,6 @@ class BioAgentAPIClient {
       preferences: StoragePreferencesUpdate
     ): Promise<FolderStructurePreview> => {
       const params = new URLSearchParams()
-      params.append('location_type', preferences.location_type)
-      if (preferences.custom_path) {
-        params.append('custom_path', preferences.custom_path)
-      }
       params.append('create_subfolders', String(preferences.create_subfolders))
       params.append('subfolder_by_date', String(preferences.subfolder_by_date))
       params.append('subfolder_by_type', String(preferences.subfolder_by_type))
@@ -251,18 +247,16 @@ class BioAgentAPIClient {
       return response.data
     },
 
-    validateCustomPath: async (path: string): Promise<PathValidationResult> => {
-      const response: AxiosResponse<PathValidationResult> = await this.client.post(
-        '/settings/storage/validate-path',
-        null,
-        { params: { path } }
+    getStorageInfo: async (): Promise<StorageInfo> => {
+      const response: AxiosResponse<StorageInfo> = await this.client.get(
+        '/settings/storage/info'
       )
       return response.data
     },
 
-    getSystemPaths: async (): Promise<{ downloads_folder: string; workspace_folder: string; platform: string }> => {
-      const response: AxiosResponse<{ downloads_folder: string; workspace_folder: string; platform: string }> = await this.client.get(
-        '/settings/storage/system-paths'
+    ensureWorkspaceStructure: async (): Promise<{ success: boolean; directories: Record<string, string> }> => {
+      const response: AxiosResponse<{ success: boolean; directories: Record<string, string> }> = await this.client.post(
+        '/settings/storage/ensure-structure'
       )
       return response.data
     },

@@ -1,34 +1,27 @@
 """
 Storage Configuration Service
 
-Manages user-configurable output storage locations with automatic
-folder structure generation.
+Manages consolidated output storage in the workspace directory
+with automatic folder structure generation.
 
-Supports:
-- System downloads folder (default)
-- Custom local path
-- Workspace directory
+All outputs are stored in: BIOAGENT_WORKSPACE/
+├── uploads/        - User uploaded files
+├── outputs/        - Analysis outputs, results, reports
+├── projects/       - Project-organized analyses
+└── memory/         - System memory and artifacts
 """
 
 import os
 import sys
-import platform
 from pathlib import Path
-from typing import Optional, Dict, Any, Literal
+from typing import Optional, Dict, Any
 from dataclasses import dataclass, asdict
 from datetime import datetime
-import json
-
-
-# Storage location types
-StorageLocationType = Literal["downloads", "workspace", "custom"]
 
 
 @dataclass
 class StoragePreferences:
-    """User storage preferences."""
-    location_type: StorageLocationType = "downloads"  # downloads, workspace, custom
-    custom_path: Optional[str] = None  # Only used if location_type == "custom"
+    """User storage organization preferences."""
     create_subfolders: bool = True  # Auto-create organized subfolders
     subfolder_by_date: bool = True  # Organize by date (YYYY-MM-DD)
     subfolder_by_type: bool = True  # Organize by file type (results, reports, figures)
@@ -40,8 +33,6 @@ class StoragePreferences:
     def from_dict(cls, data: Dict[str, Any]) -> "StoragePreferences":
         """Create from dictionary, with defaults for missing keys."""
         return cls(
-            location_type=data.get("location_type", "downloads"),
-            custom_path=data.get("custom_path"),
             create_subfolders=data.get("create_subfolders", True),
             subfolder_by_date=data.get("subfolder_by_date", True),
             subfolder_by_type=data.get("subfolder_by_type", True),
@@ -50,9 +41,9 @@ class StoragePreferences:
 
 class StorageConfigService:
     """
-    Manages output file storage locations and folder structures.
+    Manages consolidated output file storage in the workspace directory.
 
-    Provides platform-aware defaults and automatic folder generation.
+    All files are stored under BIOAGENT_WORKSPACE with organized subfolders.
     """
 
     # File type to subfolder mapping
@@ -76,7 +67,6 @@ class StorageConfigService:
         "svg": "figures",
         "jpg": "figures",
         "jpeg": "figures",
-        "pdf_figure": "figures",
 
         # Data
         "fastq": "data",
@@ -85,6 +75,7 @@ class StorageConfigService:
         "bam": "data",
         "bed": "data",
         "h5ad": "data",
+        "gz": "data",
 
         # Logs
         "log": "logs",
@@ -93,6 +84,8 @@ class StorageConfigService:
 
     def __init__(self):
         self._workspace_dir = self._get_workspace_dir()
+        # Ensure workspace exists
+        self._workspace_dir.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     def _get_workspace_dir() -> Path:
@@ -103,82 +96,25 @@ class StorageConfigService:
             default = Path("/workspace")
         return Path(os.getenv("BIOAGENT_WORKSPACE", str(default)))
 
-    @staticmethod
-    def get_system_downloads_folder() -> Path:
-        """
-        Get the system's default downloads folder.
+    @property
+    def workspace_dir(self) -> Path:
+        """Get the workspace directory."""
+        return self._workspace_dir
 
-        Platform-aware detection with fallbacks.
-        """
-        system = platform.system()
+    @property
+    def uploads_dir(self) -> Path:
+        """Get the uploads directory."""
+        return self._workspace_dir / "uploads"
 
-        if system == "Windows":
-            # Try to get Windows Downloads folder via registry
-            try:
-                import winreg
-                sub_key = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
-                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, sub_key) as key:
-                    downloads_path, _ = winreg.QueryValueEx(key, "{374DE290-123F-4565-9164-39C4925E467B}")
-                    return Path(downloads_path)
-            except Exception:
-                pass
-            # Fallback to standard location
-            return Path.home() / "Downloads"
+    @property
+    def outputs_dir(self) -> Path:
+        """Get the outputs directory."""
+        return self._workspace_dir / "outputs"
 
-        elif system == "Darwin":  # macOS
-            return Path.home() / "Downloads"
-
-        else:  # Linux and others
-            # Check XDG user dirs
-            xdg_download = os.getenv("XDG_DOWNLOAD_DIR")
-            if xdg_download:
-                return Path(xdg_download)
-            # Try to read from user-dirs.dirs
-            user_dirs_file = Path.home() / ".config" / "user-dirs.dirs"
-            if user_dirs_file.exists():
-                try:
-                    content = user_dirs_file.read_text()
-                    for line in content.splitlines():
-                        if line.startswith("XDG_DOWNLOAD_DIR"):
-                            path = line.split("=", 1)[1].strip().strip('"')
-                            path = path.replace("$HOME", str(Path.home()))
-                            return Path(path)
-                except Exception:
-                    pass
-            # Fallback
-            return Path.home() / "Downloads"
-
-    def get_base_output_path(
-        self,
-        preferences: StoragePreferences,
-        user_id: Optional[int] = None
-    ) -> Path:
-        """
-        Get the base output path based on user preferences.
-
-        Args:
-            preferences: User's storage preferences
-            user_id: Optional user ID for workspace isolation
-
-        Returns:
-            Base path for storing output files
-        """
-        if preferences.location_type == "downloads":
-            base = self.get_system_downloads_folder() / "BioAgent"
-        elif preferences.location_type == "workspace":
-            base = self._workspace_dir / "outputs"
-            if user_id:
-                base = base / str(user_id)
-        elif preferences.location_type == "custom":
-            if preferences.custom_path:
-                base = Path(preferences.custom_path)
-            else:
-                # Fallback to downloads if custom path not set
-                base = self.get_system_downloads_folder() / "BioAgent"
-        else:
-            base = self.get_system_downloads_folder() / "BioAgent"
-
-        return base
+    @property
+    def projects_dir(self) -> Path:
+        """Get the projects directory."""
+        return self._workspace_dir / "projects"
 
     def get_output_path(
         self,
@@ -194,14 +130,19 @@ class StorageConfigService:
         Args:
             filename: Name of the file to save
             preferences: User's storage preferences
-            user_id: Optional user ID
-            file_category: Override automatic category detection (results, reports, figures, etc.)
+            user_id: Optional user ID for isolation
+            file_category: Override automatic category detection
             analysis_id: Optional analysis ID for grouping related files
 
         Returns:
             Full path where the file should be saved
         """
-        base = self.get_base_output_path(preferences, user_id)
+        # Base is always the outputs directory
+        base = self.outputs_dir
+
+        # Add user isolation if provided
+        if user_id:
+            base = base / str(user_id)
 
         if not preferences.create_subfolders:
             return base / filename
@@ -258,11 +199,13 @@ class StorageConfigService:
 
         Returns a dict describing the structure for UI display.
         """
-        base = self.get_base_output_path(preferences, user_id)
+        base = self.outputs_dir
+        if user_id:
+            base = base / str(user_id)
 
         structure = {
+            "workspace_path": str(self._workspace_dir),
             "base_path": str(base),
-            "location_type": preferences.location_type,
             "subfolders": [],
         }
 
@@ -288,62 +231,44 @@ class StorageConfigService:
 
         return structure
 
-    def validate_custom_path(self, path: str) -> Dict[str, Any]:
+    def get_storage_info(self) -> Dict[str, Any]:
         """
-        Validate a custom path for use as output directory.
-
-        Returns validation result with any issues.
+        Get information about the current storage configuration.
         """
-        result = {
-            "valid": False,
-            "path": path,
-            "exists": False,
-            "writable": False,
-            "issues": [],
+        return {
+            "workspace": str(self._workspace_dir),
+            "uploads": str(self.uploads_dir),
+            "outputs": str(self.outputs_dir),
+            "projects": str(self.projects_dir),
+            "exists": self._workspace_dir.exists(),
+            "structure": {
+                "uploads": "User uploaded files",
+                "outputs": "Analysis outputs, results, reports, figures",
+                "projects": "Project-organized analyses with provenance",
+                "memory": "System memory, embeddings, artifacts",
+                "registry": "File and analysis indexes",
+            }
         }
 
-        try:
-            p = Path(path)
+    def ensure_workspace_structure(self) -> Dict[str, Path]:
+        """
+        Ensure the complete workspace structure exists.
 
-            # Check if it's an absolute path
-            if not p.is_absolute():
-                result["issues"].append("Path must be absolute")
-                return result
+        Returns dict of created directories.
+        """
+        dirs = {
+            "workspace": self._workspace_dir,
+            "uploads": self.uploads_dir,
+            "outputs": self.outputs_dir,
+            "projects": self.projects_dir,
+            "memory": self._workspace_dir / "memory",
+            "registry": self._workspace_dir / "registry",
+        }
 
-            # Check if path exists
-            if p.exists():
-                result["exists"] = True
+        for name, path in dirs.items():
+            path.mkdir(parents=True, exist_ok=True)
 
-                # Check if it's a directory
-                if not p.is_dir():
-                    result["issues"].append("Path exists but is not a directory")
-                    return result
-
-                # Check if writable
-                try:
-                    test_file = p / ".bioagent_write_test"
-                    test_file.touch()
-                    test_file.unlink()
-                    result["writable"] = True
-                except Exception:
-                    result["issues"].append("Directory exists but is not writable")
-                    return result
-            else:
-                # Try to create it
-                try:
-                    p.mkdir(parents=True, exist_ok=True)
-                    result["exists"] = True
-                    result["writable"] = True
-                except Exception as e:
-                    result["issues"].append(f"Cannot create directory: {str(e)}")
-                    return result
-
-            result["valid"] = True
-
-        except Exception as e:
-            result["issues"].append(f"Invalid path: {str(e)}")
-
-        return result
+        return dirs
 
 
 # Singleton instance

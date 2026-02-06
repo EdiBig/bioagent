@@ -19,15 +19,11 @@ export default function SettingsPage() {
   // Storage preferences (stored in backend)
   const [storagePrefs, setStoragePrefs] = useState<StoragePreferences | null>(null)
   const [storageForm, setStorageForm] = useState<StoragePreferencesUpdate>({
-    location_type: 'downloads',
-    custom_path: null,
     create_subfolders: true,
     subfolder_by_date: true,
     subfolder_by_type: true,
   })
   const [folderPreview, setFolderPreview] = useState<FolderStructurePreview | null>(null)
-  const [customPathError, setCustomPathError] = useState<string | null>(null)
-  const [validatingPath, setValidatingPath] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -49,8 +45,6 @@ export default function SettingsPage() {
         const prefs = await apiClient.settings.getStoragePreferences()
         setStoragePrefs(prefs)
         setStorageForm({
-          location_type: prefs.location_type as 'downloads' | 'workspace' | 'custom',
-          custom_path: prefs.custom_path,
           create_subfolders: prefs.create_subfolders,
           subfolder_by_date: prefs.subfolder_by_date,
           subfolder_by_type: prefs.subfolder_by_type,
@@ -58,8 +52,6 @@ export default function SettingsPage() {
 
         // Load folder preview
         await loadFolderPreview({
-          location_type: prefs.location_type as 'downloads' | 'workspace' | 'custom',
-          custom_path: prefs.custom_path,
           create_subfolders: prefs.create_subfolders,
           subfolder_by_date: prefs.subfolder_by_date,
           subfolder_by_type: prefs.subfolder_by_type,
@@ -85,40 +77,10 @@ export default function SettingsPage() {
     }
   }
 
-  // Validate custom path
-  const validateCustomPath = async (path: string) => {
-    if (!path) {
-      setCustomPathError('Please enter a path')
-      return false
-    }
-
-    setValidatingPath(true)
-    setCustomPathError(null)
-
-    try {
-      const result = await apiClient.settings.validateCustomPath(path)
-      if (!result.valid) {
-        setCustomPathError(result.issues.join(', '))
-        return false
-      }
-      return true
-    } catch (err) {
-      setCustomPathError('Failed to validate path')
-      return false
-    } finally {
-      setValidatingPath(false)
-    }
-  }
-
   // Handle storage form change
   const handleStorageChange = async (updates: Partial<StoragePreferencesUpdate>) => {
     const newForm = { ...storageForm, ...updates }
     setStorageForm(newForm)
-
-    // Clear custom path error if changing away from custom
-    if (updates.location_type && updates.location_type !== 'custom') {
-      setCustomPathError(null)
-    }
 
     // Update preview
     await loadFolderPreview(newForm)
@@ -133,15 +95,8 @@ export default function SettingsPage() {
       localStorage.setItem('bioagent-settings', JSON.stringify(uiSettings))
 
       // Save storage preferences to backend
-      if (storageForm.location_type === 'custom') {
-        const isValid = await validateCustomPath(storageForm.custom_path || '')
-        if (!isValid) {
-          setSaving(false)
-          return
-        }
-      }
-
-      await apiClient.settings.updateStoragePreferences(storageForm)
+      const updatedPrefs = await apiClient.settings.updateStoragePreferences(storageForm)
+      setStoragePrefs(updatedPrefs)
 
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -213,7 +168,7 @@ export default function SettingsPage() {
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            Storage & Downloads
+            Storage
           </button>
         </div>
 
@@ -307,100 +262,36 @@ export default function SettingsPage() {
 
         {activeTab === 'storage' && (
           <>
-            {/* Storage Location */}
+            {/* Storage Location Info */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="font-semibold text-gray-900 dark:text-white">Output Location</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white">Workspace Location</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Choose where to save analysis results, reports, and figures
+                  All files are stored in a single consolidated workspace
                 </p>
               </div>
-              <div className="p-6 space-y-4">
-                {/* Location type selection */}
-                <div className="space-y-3">
-                  <label className="flex items-start p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <input
-                      type="radio"
-                      name="location_type"
-                      value="downloads"
-                      checked={storageForm.location_type === 'downloads'}
-                      onChange={() => handleStorageChange({ location_type: 'downloads' })}
-                      className="mt-1 text-bio-dna-500 focus:ring-bio-dna-500"
-                    />
-                    <div className="ml-3">
-                      <p className="font-medium text-gray-900 dark:text-white">Downloads Folder (Recommended)</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Save to your system&apos;s Downloads folder
-                      </p>
-                      {storagePrefs && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">
-                          {storagePrefs.downloads_folder}/BioAgent
-                        </p>
-                      )}
+              <div className="p-6">
+                {storagePrefs && (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                      <svg className="w-5 h-5 text-bio-dna-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Workspace</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{storagePrefs.workspace_path}</p>
+                      </div>
                     </div>
-                  </label>
-
-                  <label className="flex items-start p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <input
-                      type="radio"
-                      name="location_type"
-                      value="workspace"
-                      checked={storageForm.location_type === 'workspace'}
-                      onChange={() => handleStorageChange({ location_type: 'workspace' })}
-                      className="mt-1 text-bio-dna-500 focus:ring-bio-dna-500"
-                    />
-                    <div className="ml-3">
-                      <p className="font-medium text-gray-900 dark:text-white">Workspace Directory</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Save alongside uploads and analysis data
-                      </p>
-                      {storagePrefs && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">
-                          {storagePrefs.workspace_folder}/outputs
-                        </p>
-                      )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Uploads</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{storagePrefs.uploads_path}</p>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Outputs</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{storagePrefs.outputs_path}</p>
+                      </div>
                     </div>
-                  </label>
-
-                  <label className="flex items-start p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <input
-                      type="radio"
-                      name="location_type"
-                      value="custom"
-                      checked={storageForm.location_type === 'custom'}
-                      onChange={() => handleStorageChange({ location_type: 'custom' })}
-                      className="mt-1 text-bio-dna-500 focus:ring-bio-dna-500"
-                    />
-                    <div className="ml-3 flex-1">
-                      <p className="font-medium text-gray-900 dark:text-white">Custom Location</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Specify a custom folder path
-                      </p>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Custom path input */}
-                {storageForm.location_type === 'custom' && (
-                  <div className="ml-7 mt-2">
-                    <input
-                      type="text"
-                      value={storageForm.custom_path || ''}
-                      onChange={(e) => handleStorageChange({ custom_path: e.target.value })}
-                      onBlur={() => storageForm.custom_path && validateCustomPath(storageForm.custom_path)}
-                      placeholder="Enter absolute path (e.g., C:\MyData\BioAgent or /home/user/bioagent)"
-                      className={`w-full px-3 py-2 bg-white dark:bg-gray-700 border rounded-lg focus:ring-2 focus:ring-bio-dna-500 text-gray-900 dark:text-white font-mono text-sm ${
-                        customPathError
-                          ? 'border-red-500 dark:border-red-500'
-                          : 'border-gray-300 dark:border-gray-600'
-                      }`}
-                    />
-                    {validatingPath && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Validating path...</p>
-                    )}
-                    {customPathError && (
-                      <p className="text-sm text-red-500 dark:text-red-400 mt-1">{customPathError}</p>
-                    )}
                   </div>
                 )}
               </div>
@@ -494,7 +385,7 @@ export default function SettingsPage() {
                         <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                         </svg>
-                        <span className="text-gray-900 dark:text-white">{folderPreview.base_path}</span>
+                        <span className="text-gray-900 dark:text-white">outputs/</span>
                       </div>
                       {folderPreview.subfolders.map((folder, index) => (
                         <div key={index} className="ml-6 mt-2">
@@ -514,7 +405,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                       <p className="text-xs text-gray-500 dark:text-gray-400">Example output path:</p>
-                      <p className="text-gray-900 dark:text-white break-all">{folderPreview.example_path}</p>
+                      <p className="text-gray-900 dark:text-white break-all text-xs">{folderPreview.example_path}</p>
                     </div>
                   </div>
                 </div>

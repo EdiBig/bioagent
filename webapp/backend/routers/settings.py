@@ -2,25 +2,20 @@
 Settings router - handles user preferences and configuration
 
 Provides endpoints for:
-- Getting/setting storage preferences
-- Validating custom paths
-- Getting folder structure previews
+- Getting/setting storage organization preferences
+- Getting storage info and folder structure previews
 """
 
-import os
-from typing import Optional, Dict, Any
-from pathlib import Path
+from typing import Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from models.database import get_db, User, get_or_create_user
 from services.storage_config import (
     StorageConfigService,
     StoragePreferences,
-    StorageLocationType,
     storage_config_service,
 )
 
@@ -32,14 +27,6 @@ router = APIRouter(prefix="/settings")
 
 class StoragePreferencesRequest(BaseModel):
     """Request schema for updating storage preferences."""
-    location_type: StorageLocationType = Field(
-        default="downloads",
-        description="Where to save output files: downloads, workspace, or custom"
-    )
-    custom_path: Optional[str] = Field(
-        default=None,
-        description="Custom path when location_type is 'custom'"
-    )
     create_subfolders: bool = Field(
         default=True,
         description="Automatically create organized subfolders"
@@ -56,37 +43,30 @@ class StoragePreferencesRequest(BaseModel):
 
 class StoragePreferencesResponse(BaseModel):
     """Response schema for storage preferences."""
-    location_type: str
-    custom_path: Optional[str]
     create_subfolders: bool
     subfolder_by_date: bool
     subfolder_by_type: bool
-    base_path: str
-    downloads_folder: str
-    workspace_folder: str
+    workspace_path: str
+    outputs_path: str
+    uploads_path: str
 
 
 class FolderStructurePreview(BaseModel):
     """Preview of folder structure."""
+    workspace_path: str
     base_path: str
-    location_type: str
     subfolders: list
     example_path: str
 
 
-class PathValidationResult(BaseModel):
-    """Result of path validation."""
-    valid: bool
-    path: str
+class StorageInfoResponse(BaseModel):
+    """Storage system information."""
+    workspace: str
+    uploads: str
+    outputs: str
+    projects: str
     exists: bool
-    writable: bool
-    issues: list
-
-
-class AllPreferencesResponse(BaseModel):
-    """All user preferences."""
-    storage: StoragePreferencesResponse
-    # Add other preference categories here as needed
+    structure: Dict[str, str]
 
 
 # ==================== HELPER FUNCTIONS ====================
@@ -117,19 +97,18 @@ async def get_storage_preferences(
     """
     Get current storage preferences for the user.
 
-    Returns the configured storage location and folder organization settings.
+    All files are stored in a single consolidated workspace directory.
+    These settings control how files are organized within that workspace.
     """
     prefs = get_storage_preferences_from_user(user)
 
     return StoragePreferencesResponse(
-        location_type=prefs.location_type,
-        custom_path=prefs.custom_path,
         create_subfolders=prefs.create_subfolders,
         subfolder_by_date=prefs.subfolder_by_date,
         subfolder_by_type=prefs.subfolder_by_type,
-        base_path=str(storage_config_service.get_base_output_path(prefs, user.id)),
-        downloads_folder=str(storage_config_service.get_system_downloads_folder()),
-        workspace_folder=str(storage_config_service._workspace_dir),
+        workspace_path=str(storage_config_service.workspace_dir),
+        outputs_path=str(storage_config_service.outputs_dir),
+        uploads_path=str(storage_config_service.uploads_dir),
     )
 
 
@@ -140,28 +119,12 @@ async def update_storage_preferences(
     user: User = Depends(get_current_user),
 ):
     """
-    Update storage preferences for the user.
+    Update storage organization preferences for the user.
 
-    Validates custom paths before saving.
+    Controls how files are organized within the workspace directory.
     """
-    # Validate custom path if specified
-    if request.location_type == "custom":
-        if not request.custom_path:
-            raise HTTPException(
-                status_code=400,
-                detail="custom_path is required when location_type is 'custom'"
-            )
-        validation = storage_config_service.validate_custom_path(request.custom_path)
-        if not validation["valid"]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid custom path: {', '.join(validation['issues'])}"
-            )
-
     # Update user preferences
     prefs = StoragePreferences(
-        location_type=request.location_type,
-        custom_path=request.custom_path,
         create_subfolders=request.create_subfolders,
         subfolder_by_date=request.subfolder_by_date,
         subfolder_by_type=request.subfolder_by_type,
@@ -176,21 +139,17 @@ async def update_storage_preferences(
     await db.refresh(user)
 
     return StoragePreferencesResponse(
-        location_type=prefs.location_type,
-        custom_path=prefs.custom_path,
         create_subfolders=prefs.create_subfolders,
         subfolder_by_date=prefs.subfolder_by_date,
         subfolder_by_type=prefs.subfolder_by_type,
-        base_path=str(storage_config_service.get_base_output_path(prefs, user.id)),
-        downloads_folder=str(storage_config_service.get_system_downloads_folder()),
-        workspace_folder=str(storage_config_service._workspace_dir),
+        workspace_path=str(storage_config_service.workspace_dir),
+        outputs_path=str(storage_config_service.outputs_dir),
+        uploads_path=str(storage_config_service.uploads_dir),
     )
 
 
 @router.get("/storage/preview", response_model=FolderStructurePreview)
 async def preview_folder_structure(
-    location_type: StorageLocationType = "downloads",
-    custom_path: Optional[str] = None,
     create_subfolders: bool = True,
     subfolder_by_date: bool = True,
     subfolder_by_type: bool = True,
@@ -204,8 +163,6 @@ async def preview_folder_structure(
     before they save their preferences.
     """
     prefs = StoragePreferences(
-        location_type=location_type,
-        custom_path=custom_path,
         create_subfolders=create_subfolders,
         subfolder_by_date=subfolder_by_date,
         subfolder_by_type=subfolder_by_type,
@@ -216,56 +173,27 @@ async def preview_folder_structure(
     return FolderStructurePreview(**preview)
 
 
-@router.post("/storage/validate-path", response_model=PathValidationResult)
-async def validate_custom_path(
-    path: str,
-):
+@router.get("/storage/info", response_model=StorageInfoResponse)
+async def get_storage_info():
     """
-    Validate a custom path for use as output directory.
+    Get information about the storage system.
 
-    Checks if the path is valid, exists, and is writable.
+    Returns paths and structure of the consolidated workspace.
     """
-    result = storage_config_service.validate_custom_path(path)
-    return PathValidationResult(**result)
+    info = storage_config_service.get_storage_info()
+    return StorageInfoResponse(**info)
 
 
-@router.get("/storage/system-paths")
-async def get_system_paths():
+@router.post("/storage/ensure-structure")
+async def ensure_workspace_structure():
     """
-    Get system default paths for reference.
+    Ensure the complete workspace structure exists.
 
-    Returns the detected downloads folder and workspace directory.
+    Creates all necessary directories if they don't exist.
     """
+    dirs = storage_config_service.ensure_workspace_structure()
     return {
-        "downloads_folder": str(storage_config_service.get_system_downloads_folder()),
-        "workspace_folder": str(storage_config_service._workspace_dir),
-        "platform": os.name,
+        "success": True,
+        "message": "Workspace structure ensured",
+        "directories": {name: str(path) for name, path in dirs.items()}
     }
-
-
-@router.get("/", response_model=AllPreferencesResponse)
-async def get_all_preferences(
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    """
-    Get all user preferences.
-
-    Returns storage and other preference categories.
-    """
-    storage_prefs = get_storage_preferences_from_user(user)
-
-    storage_response = StoragePreferencesResponse(
-        location_type=storage_prefs.location_type,
-        custom_path=storage_prefs.custom_path,
-        create_subfolders=storage_prefs.create_subfolders,
-        subfolder_by_date=storage_prefs.subfolder_by_date,
-        subfolder_by_type=storage_prefs.subfolder_by_type,
-        base_path=str(storage_config_service.get_base_output_path(storage_prefs, user.id)),
-        downloads_folder=str(storage_config_service.get_system_downloads_folder()),
-        workspace_folder=str(storage_config_service._workspace_dir),
-    )
-
-    return AllPreferencesResponse(
-        storage=storage_response,
-    )

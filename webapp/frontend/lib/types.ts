@@ -210,30 +210,24 @@ export interface DoneEventData {
 
 // ==================== SETTINGS TYPES ====================
 
-export type StorageLocationType = 'downloads' | 'workspace' | 'custom'
-
 export interface StoragePreferences {
-  location_type: StorageLocationType
-  custom_path: string | null
   create_subfolders: boolean
   subfolder_by_date: boolean
   subfolder_by_type: boolean
-  base_path: string
-  downloads_folder: string
-  workspace_folder: string
+  workspace_path: string
+  outputs_path: string
+  uploads_path: string
 }
 
 export interface StoragePreferencesUpdate {
-  location_type: StorageLocationType
-  custom_path?: string | null
   create_subfolders: boolean
   subfolder_by_date: boolean
   subfolder_by_type: boolean
 }
 
 export interface FolderStructurePreview {
+  workspace_path: string
   base_path: string
-  location_type: string
   subfolders: Array<{
     name: string
     description: string
@@ -243,12 +237,13 @@ export interface FolderStructurePreview {
   example_path: string
 }
 
-export interface PathValidationResult {
-  valid: boolean
-  path: string
+export interface StorageInfo {
+  workspace: string
+  uploads: string
+  outputs: string
+  projects: string
   exists: boolean
-  writable: boolean
-  issues: string[]
+  structure: Record<string, string>
 }
 
 // ==================== API CLIENT INTERFACE ====================
